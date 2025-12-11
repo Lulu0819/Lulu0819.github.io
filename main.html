@@ -32,7 +32,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>Guitar Chord Explorer 🎸</h1>
+    <h1>Guitar Chord Explorer 🎸（純 HTML + JS 可直接預覽）</h1>
     <p class="muted">輸入和弦的組成音（例：<span class="kbd">C E G</span> 或 <span class="kbd">G,B,D,F#</span>）。下方會顯示辨識結果與吉他指法建議。</p>
 
     <div class="grid controls">
@@ -83,23 +83,17 @@
     </div>
 
     <div class="footer">
-      <strong></strong> 
+      <strong>說明：</strong> 本工具以「和弦組成音」為輸入，嘗試比對大量常見與進階和弦模式（包含大/小/增/減/7/maj7/m7/m7b5/半減/aug/7b5/add/sus/5 等）。若要我加入「直接解析和弦文字（例如 Em7 / Cmaj7/G）」，我可以再幫你擴充。
     </div>
   </div>
 
 <script>
-/* ---------- Data & Helpers ---------- */
-
 const NOTE_NAMES_SHARP = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const NOTE_NAMES_FLAT  = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
 const MAJOR_KEYS = ["C","G","D","A","E","B","F#","C#","F","Bb","Eb","Ab","Db","Gb"];
 
-// Guitar strings: low(6) -> high(1) pitch classes (E A D G B E)
 const GUITAR_STRINGS = [4,9,2,7,11,4];
 
-// NOTE: fingering index 0 => low E (6th string), index 5 => high E (1st string)
-
-/* chord patterns (intervals in semitones from root) */
 const CHORD_PATTERNS = [
   {name:"maj", intervals:[0,4,7], aliases:[""]},
   {name:"min", intervals:[0,3,7], aliases:["m","-"]},
@@ -129,21 +123,17 @@ const CHORD_PATTERNS = [
   {name:"7b5", intervals:[0,4,6,10], aliases:["7b5"]},
 ];
 
-/* parse note -> pitch class (0..11) */
 function noteToPc(note) {
   if(!note) return null;
   let s = note.trim();
   s = s.replace(/�/g,'').replace(/♯/g,'#').replace(/♭/g,'b');
   if(s.length === 0) return null;
-  // uppercase letter
   const base = s[0].toUpperCase();
   const accidental = s.slice(1);
-  // try direct names in sharp and flat tables
   const trySharp = NOTE_NAMES_SHARP.indexOf(base + accidental);
   if(trySharp !== -1) return trySharp;
   const tryFlat = NOTE_NAMES_FLAT.indexOf(base + accidental);
   if(tryFlat !== -1) return tryFlat;
-  // single accidental handling
   if(accidental === '#' ) {
     const idx = NOTE_NAMES_SHARP.indexOf(base);
     return (idx + 1) % 12;
@@ -152,7 +142,6 @@ function noteToPc(note) {
     const idx = NOTE_NAMES_SHARP.indexOf(base);
     return (idx + 11) % 12;
   }
-  // fallback: single letter
   const idx = NOTE_NAMES_SHARP.indexOf(base);
   if(idx !== -1) return idx;
   return null;
@@ -165,14 +154,12 @@ function pcsToNames(pcs, preferFlats=false) {
 
 function uniqueSorted(arr){ return Array.from(new Set(arr.map(x=>((x%12)+12)%12))).sort((a,b)=>a-b); }
 
-/* intervals from root */
 function intervalsFromRoot(root, pcs) {
   const uniq = uniqueSorted(pcs);
   const ints = uniq.map(p => ((p - root) % 12 + 12) % 12).sort((a,b)=>a-b);
   return ints;
 }
 
-/* match patterns where pattern intervals subset of intervals */
 function matchPattern(intervals) {
   const matches = [];
   const intSet = new Set(intervals.map(i=>i%12));
@@ -203,8 +190,6 @@ function identifyChordsFromPcs(pcs) {
   return results;
 }
 
-/* Heuristic fret finder: for each string (low->high), pick fret 0..max that matches any pc in pcs.
-   Try different base window positions and choose best by matched count and compact range. */
 function findFretboard(pcs, maxFret=12, baseFretLimit=5, span=4) {
   const target = pcs.map(p=>((p%12)+12)%12);
   const candidates = [];
@@ -231,8 +216,6 @@ function findFretboard(pcs, maxFret=12, baseFretLimit=5, span=4) {
   return candidates[0];
 }
 
-/* ---------- UI wiring ---------- */
-
 const keySelect = document.getElementById('keySelect');
 const transposeEl = document.getElementById('transpose');
 const transposeVal = document.getElementById('transposeVal');
@@ -254,13 +237,8 @@ function populateKeys(){
 }
 populateKeys();
 
-/* strings label order for small fretboard display:
-   We want the visual order (left -> right) such that reading RIGHT -> LEFT equals:
-   E'  B  G  D  A  E   (i.e. 1st -> 6th when read from right to left)
-   To make glance mapping simple, we'll store labels in array aligned with displayed boxes:
-   displayedLabels[s] with s from 0..5 corresponds to fingering index 5 - s
-*/
-const displayedLabels = ["E'","B","G","D","A","E"];
+/* ---------------- 修改：弦的顯示順序改成 6→1 ---------------- */
+const displayedLabels = ["E", "A", "D", "G", "B", "E'"];  // 左→右 = 6→1
 
 function parseInputToPcs(text, transpose=0) {
   if(!text) return [];
@@ -269,6 +247,35 @@ function parseInputToPcs(text, transpose=0) {
   const tokens = cleaned.split(/\s+/);
   const pcs = tokens.map(t => noteToPc(t)).filter(x => x !== null).map(n => ((n + transpose) % 12 + 12) % 12);
   return pcs;
+}
+
+/* ---------------- 修改：renderFretGrid() mapping 調整 ---------------- */
+function renderFretGrid(fb) {
+  fretGrid.innerHTML = "";
+  for(let s=0;s<6;s++){
+    const box = document.createElement('div');
+    box.className = 'string-box';
+    const label = document.createElement('div');
+    label.className = 'string-name';
+    label.textContent = displayedLabels[s];
+
+    const fret = document.createElement('div');
+    fret.className = 'fret-num';
+
+    // 新 mapping：displayed index s = fingering[s]
+    let val = '—';
+    if(fb && fb.fingering){
+      const fing = fb.fingering[s];
+      val = (fing === null) ? 'X' : String(fing);
+    } else {
+      val = 'X';
+    }
+
+    fret.textContent = val;
+    box.appendChild(label);
+    box.appendChild(fret);
+    fretGrid.appendChild(box);
+  }
 }
 
 function updateUI(){
@@ -308,7 +315,6 @@ function updateUI(){
     bestMatchEl.innerHTML = "";
   }
 
-  // find fretboard
   const fb = findFretboard(uniquePcs);
   if(!fb) {
     fretInfo.textContent = "建議把位：無";
@@ -319,41 +325,11 @@ function updateUI(){
   }
 }
 
-/* render small fretboard grid. displayedLabels[0] is left-most box.
-   fingering array is indexed low->high (0..5). To map to displayed label s (0..5),
-   use fingering[5 - s] so that displayedLabels[0] (E') uses fingering[5] (high E).
-*/
-function renderFretGrid(fb) {
-  fretGrid.innerHTML = "";
-  for(let s=0;s<6;s++){
-    const box = document.createElement('div');
-    box.className = 'string-box';
-    const label = document.createElement('div');
-    label.className = 'string-name';
-    label.textContent = displayedLabels[s];
-    const fret = document.createElement('div');
-    fret.className = 'fret-num';
-    let val = '—';
-    if(fb && fb.fingering){
-      const fing = fb.fingering[5 - s]; // map
-      val = (fing === null) ? 'X' : String(fing);
-    } else {
-      val = 'X';
-    }
-    fret.textContent = val;
-    box.appendChild(label);
-    box.appendChild(fret);
-    fretGrid.appendChild(box);
-  }
-}
-
-/* events */
 analyzeBtn.addEventListener('click', updateUI);
 transposeEl.addEventListener('input', updateUI);
 useFlatsEl.addEventListener('change', updateUI);
 chordInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); updateUI(); } });
 
-/* initial run */
 updateUI();
 
 </script>
