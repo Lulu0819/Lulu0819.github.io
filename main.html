@@ -1,144 +1,155 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <title>專業線上轉盤 - 隱藏模式</title>
-    <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f0f2f5; padding: 20px; }
-        .container { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
-        
-        /* 轉盤外殼 */
-        .wheel-container { position: relative; width: 300px; height: 300px; margin: 20px 0; border: 5px solid #333; border-radius: 50%; overflow: hidden; }
-        #wheel { width: 100%; height: 100%; transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1); }
-        
-        /* 指針 */
-        .pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid red; z-index: 10; }
+<meta charset="UTF-8">
+<title>線上轉盤</title>
+<style>
+body {
+  font-family: "Microsoft JhengHei", sans-serif;
+  background: #eef9ff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40px;
+}
 
-        textarea { width: 100%; height: 80px; margin-bottom: 10px; padding: 10px; box-sizing: border-box; }
-        
-        /* 關鍵按鈕 */
-        #spinBtn {
-            padding: 12px 40px; font-size: 18px; cursor: pointer;
-            background: #007bff; color: white; border: none; border-radius: 5px;
-            transition: background 0.3s; position: relative;
-        }
-        #spinBtn:hover { background: #0056b3; }
-        #result { margin-top: 15px; font-weight: bold; color: #d9534f; font-size: 1.2rem; }
-    </style>
+input {
+  width: 320px;
+  padding: 10px;
+  font-size: 16px;
+}
+
+#wheel-container {
+  position: relative;
+  margin: 30px 0;
+}
+
+#wheel {
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  border: 8px solid #4aa3df;
+  transition: transform 4s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+#pointer {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 30px;
+}
+
+button {
+  width: 300px;
+  height: 50px;
+  font-size: 18px;
+  background: #4aa3df;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #3691cc;
+}
+
+#result {
+  margin-top: 20px;
+  font-size: 20px;
+  font-weight: bold;
+}
+</style>
 </head>
+
 <body>
 
-<div class="container">
-    <h2>幸運大轉盤</h2>
-    <p>輸入選項（一行一個）：</p>
-    <textarea id="optionsText">第一個人(必中位)
-第二個人
-第三個人
-第四個人</textarea>
-    
-    <div class="wheel-container">
-        <div class="pointer"></div>
-        <canvas id="wheel" width="300" height="300"></canvas>
-    </div>
+<h2>🎡 線上轉盤</h2>
+<input id="items" placeholder="輸入選項，用逗號分隔（A,B,C）">
 
-    <button id="spinBtn">開始抽獎</button>
-    <div id="result"></div>
+<div id="wheel-container">
+  <div id="pointer">▼</div>
+  <canvas id="wheel" width="300" height="300"></canvas>
 </div>
 
+<button id="spinBtn">開始轉盤</button>
+
+<div id="result"></div>
+
 <script>
-    const canvas = document.getElementById('wheel');
-    const ctx = canvas.getContext('2d');
-    const spinBtn = document.getElementById('spinBtn');
-    const resultDiv = document.getElementById('result');
-    const optionsInput = document.getElementById('optionsText');
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const btn = document.getElementById("spinBtn");
+const result = document.getElementById("result");
 
-    let currentRotation = 0;
-    let isSpinning = false;
+let rotation = 0;
+let items = [];
 
-    // 繪製轉盤
-    function drawWheel(options) {
-        const num = options.length;
-        const arc = (Math.PI * 2) / num;
-        ctx.clearRect(0, 0, 300, 300);
+function drawWheel() {
+  const size = canvas.width;
+  const radius = size / 2;
+  const angle = (2 * Math.PI) / items.length;
 
-        options.forEach((text, i) => {
-            const angle = i * arc;
-            ctx.beginPath();
-            ctx.fillStyle = `hsl(${i * (360 / num)}, 70%, 70%)`;
-            ctx.moveTo(150, 150);
-            ctx.arc(150, 150, 150, angle, angle + arc);
-            ctx.lineTo(150, 150);
-            ctx.fill();
+  ctx.clearRect(0, 0, size, size);
 
-            // 繪製文字
-            ctx.save();
-            ctx.translate(150, 150);
-            ctx.rotate(angle + arc / 2);
-            ctx.textAlign = "right";
-            ctx.fillStyle = "#333";
-            ctx.font = "14px Arial";
-            ctx.fillText(text, 140, 5);
-            ctx.restore();
-        });
-    }
+  items.forEach((item, i) => {
+    ctx.beginPath();
+    ctx.moveTo(radius, radius);
+    ctx.arc(radius, radius, radius, i * angle, (i + 1) * angle);
+    ctx.fillStyle = i % 2 === 0 ? "#a7d8ff" : "#d0ecff";
+    ctx.fill();
 
-    // 初始化繪製
-    drawWheel(optionsInput.value.split('\n').filter(t => t.trim()));
+    ctx.save();
+    ctx.translate(radius, radius);
+    ctx.rotate(i * angle + angle / 2);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#333";
+    ctx.font = "16px sans-serif";
+    ctx.fillText(item, radius - 10, 5);
+    ctx.restore();
+  });
+}
 
-    // 監聽輸入即時更新轉盤
-    optionsInput.addEventListener('input', () => {
-        const options = optionsInput.value.split('\n').filter(t => t.trim());
-        if (options.length > 0) drawWheel(options);
-    });
+btn.addEventListener("click", (e) => {
+  items = document.getElementById("items").value
+    .split(",")
+    .map(i => i.trim())
+    .filter(i => i);
 
-    spinBtn.addEventListener('click', function(e) {
-        if (isSpinning) return;
+  if (items.length < 2) {
+    result.textContent = "請至少輸入兩個選項";
+    return;
+  }
 
-        const options = optionsInput.value.split('\n').filter(t => t.trim());
-        if (options.length < 2) return alert("請至少輸入兩個選項");
+  drawWheel();
 
-        // --- 核心邏輯：判斷點擊位置 ---
-        const rect = spinBtn.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        const width = rect.width;
-        
-        let targetIndex;
+  // 判斷點擊位置（作弊關鍵）
+  const rect = btn.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const ratio = clickX / rect.width;
 
-        if (clickX < width * 0.1) {
-            // 點擊左側 10%：必中第一個 (Index 0)
-            console.log("Mode: Master Control Activated");
-            targetIndex = 0;
-        } else {
-            // 點擊其他 90%：隨機
-            console.log("Mode: Fair Random");
-            targetIndex = Math.floor(Math.random() * options.length);
-        }
+  let chosenIndex;
 
-        startSpin(targetIndex, options);
-    });
+  if (ratio < 0.1) {
+    // 左邊 10% → 作弊模式
+    chosenIndex = 0;
+    console.log("🎯 作弊模式");
+  } else {
+    // 正常公平
+    chosenIndex = Math.floor(Math.random() * items.length);
+  }
 
-    function startSpin(targetIndex, options) {
-        isSpinning = true;
-        resultDiv.innerText = "旋轉中...";
-        
-        const num = options.length;
-        const arcDegree = 360 / num;
-        
-        // 計算旋轉角度：
-        // 1. 先轉個 5-10 圈 (360 * 5)
-        // 2. 指針在正上方 (270度方向)，所以要調整偏移
-        // 3. 扣掉目標索引的角度
-        const extraDegree = (360 - (targetIndex * arcDegree)) - (arcDegree / 2);
-        const totalRotation = currentRotation + (360 * 5) + extraDegree;
-        
-        canvas.style.transform = `rotate(${totalRotation}deg)`;
-        currentRotation = totalRotation;
+  const anglePerItem = 360 / items.length;
+  const targetAngle = 360 * 5 + (360 - chosenIndex * anglePerItem - anglePerItem / 2);
 
-        setTimeout(() => {
-            isSpinning = false;
-            resultDiv.innerText = `恭喜中獎：${options[targetIndex]}`;
-        }, 4000);
-    }
+  rotation += targetAngle;
+  canvas.style.transform = `rotate(${rotation}deg)`;
+
+  setTimeout(() => {
+    result.textContent = `🎉 結果是：${items[chosenIndex]}`;
+  }, 4000);
+});
 </script>
 
 </body>
