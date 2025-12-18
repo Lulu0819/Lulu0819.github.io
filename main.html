@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>史萊姆疊疊樂 - GitHub 版</title>
+    <title>史萊姆疊疊樂 - 修正版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         body { margin: 0; background: #eef9ff; overflow: hidden; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
@@ -33,10 +33,10 @@
         isStatic: true, render: { fillStyle: '#b3e5fc' } 
     });
 
-    // 這裡使用你上傳的基底圖檔名
+    // --- 關鍵修正：對應你的 GitHub 檔案名稱 slime_base.png.png ---
     const baseSlime = Bodies.rectangle(window.innerWidth/2, window.innerHeight - 200, 240, 110, {
         isStatic: true, 
-        render: { sprite: { texture: 'image_94fe7c.png', xScale: 0.45, yScale: 0.45 } }
+        render: { sprite: { texture: 'slime_base.png.png', xScale: 0.45, yScale: 0.45 } }
     });
 
     Composite.add(engine.world, [floor, baseSlime]);
@@ -46,12 +46,15 @@
     const toolbar = document.getElementById('toolbar');
     for (let i = 1; i <= 12; i++) {
         const img = document.createElement('img');
-        img.src = `slime_${i}.png`; 
+        // --- 關鍵修正：對應你的 GitHub 檔案名稱 slime_X.png.png ---
+        const fileName = `slime_${i}.png.png`; 
+        
+        img.src = fileName;
         img.className = 'slime-unit';
         img.onclick = () => {
             const s = Bodies.rectangle(window.innerWidth/2, 50, 80, 60, {
                 restitution: 0.6, friction: 0.8, chamfer: { radius: 20 },
-                render: { sprite: { texture: `slime_${i}.png`, xScale: 0.4, yScale: 0.4 } }
+                render: { sprite: { texture: fileName, xScale: 0.4, yScale: 0.4 } }
             });
             Composite.add(engine.world, s);
         };
@@ -61,13 +64,6 @@
     const mouse = Mouse.create(render.canvas);
     const mConstraint = MouseConstraint.create(engine, { mouse: mouse, constraint: { stiffness: 0.2, render: { visible: false } } });
     Composite.add(engine.world, mConstraint);
-
-    Events.on(mConstraint, "mousedown", function() {
-        if (mConstraint.body && !mConstraint.body.isStatic) {
-            Body.scale(mConstraint.body, 1.2, 0.8);
-            setTimeout(() => Body.scale(mConstraint.body, 1/1.2, 1/0.8), 100);
-        }
-    });
 
     window.addEventListener('resize', () => {
         render.canvas.width = window.innerWidth;
