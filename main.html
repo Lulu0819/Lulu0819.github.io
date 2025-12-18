@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>史萊姆疊疊樂 - 修正版</title>
+    <title>史萊姆疊疊樂 - 資料夾修正版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         body { margin: 0; background: #eef9ff; overflow: hidden; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
@@ -12,7 +12,7 @@
             display: flex; align-items: center; justify-content: start; 
             gap: 12px; padding: 0 20px; overflow-x: auto;
         }
-        .slime-unit { width: 70px; height: 70px; object-fit: contain; cursor: grab; transition: 0.2s; border-radius: 10px; background: #fdfdfd; padding: 5px; }
+        .slime-unit { width: 70px; height: 70px; object-fit: contain; cursor: pointer; transition: 0.2s; border-radius: 10px; background: #fdfdfd; padding: 5px; border: 1px solid #ddd; }
         .slime-unit:hover { transform: scale(1.1); background: #e1f5fe; }
     </style>
 </head>
@@ -29,46 +29,17 @@
         options: { width: window.innerWidth, height: window.innerHeight - 140, wireframes: false, background: 'transparent' }
     });
 
+    // --- 關鍵修正：加上「新增資料夾/」路徑 ---
+    const folder = "新增資料夾/";
+
     const floor = Bodies.rectangle(window.innerWidth/2, window.innerHeight - 130, window.innerWidth, 20, { 
         isStatic: true, render: { fillStyle: '#b3e5fc' } 
     });
 
-    // --- 關鍵修正：對應你的 GitHub 檔案名稱 slime_base.png.png ---
+    // 修正基底圖路徑與名稱
     const baseSlime = Bodies.rectangle(window.innerWidth/2, window.innerHeight - 200, 240, 110, {
         isStatic: true, 
-        render: { sprite: { texture: 'slime_base.png.png', xScale: 0.45, yScale: 0.45 } }
+        render: { sprite: { texture: folder + 'slime_base.png.png', xScale: 0.45, yScale: 0.45 } }
     });
 
     Composite.add(engine.world, [floor, baseSlime]);
-    Render.run(render);
-    Runner.run(Runner.create(), engine);
-
-    const toolbar = document.getElementById('toolbar');
-    for (let i = 1; i <= 12; i++) {
-        const img = document.createElement('img');
-        // --- 關鍵修正：對應你的 GitHub 檔案名稱 slime_X.png.png ---
-        const fileName = `slime_${i}.png.png`; 
-        
-        img.src = fileName;
-        img.className = 'slime-unit';
-        img.onclick = () => {
-            const s = Bodies.rectangle(window.innerWidth/2, 50, 80, 60, {
-                restitution: 0.6, friction: 0.8, chamfer: { radius: 20 },
-                render: { sprite: { texture: fileName, xScale: 0.4, yScale: 0.4 } }
-            });
-            Composite.add(engine.world, s);
-        };
-        toolbar.appendChild(img);
-    }
-
-    const mouse = Mouse.create(render.canvas);
-    const mConstraint = MouseConstraint.create(engine, { mouse: mouse, constraint: { stiffness: 0.2, render: { visible: false } } });
-    Composite.add(engine.world, mConstraint);
-
-    window.addEventListener('resize', () => {
-        render.canvas.width = window.innerWidth;
-        render.canvas.height = window.innerHeight - 140;
-    });
-</script>
-</body>
-</html>
