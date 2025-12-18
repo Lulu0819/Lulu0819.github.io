@@ -2,44 +2,123 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>史萊姆疊疊樂 - 資料夾修正版</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <title>萬用幸運轉盤 (內建必中邏輯)</title>
     <style>
-        body { margin: 0; background: #eef9ff; overflow: hidden; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
-        #game-stage { flex: 1; position: relative; cursor: pointer; }
-        #toolbar { 
-            height: 140px; background: #fff; border-top: 5px solid #81d4fa;
-            display: flex; align-items: center; justify-content: start; 
-            gap: 12px; padding: 0 20px; overflow-x: auto;
-        }
-        .slime-unit { width: 70px; height: 70px; object-fit: contain; cursor: pointer; transition: 0.2s; border-radius: 10px; background: #fdfdfd; padding: 5px; border: 1px solid #ddd; }
-        .slime-unit:hover { transform: scale(1.1); background: #e1f5fe; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f2f5; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; max-width: 500px; width: 100%; }
+        
+        /* 轉盤外框 */
+        .wheel-wrapper { position: relative; width: 300px; height: 300px; margin: 20px auto; }
+        #wheel { width: 100%; height: 100%; border-radius: 50%; border: 5px solid #333; transition: transform 5s cubic-bezier(0.15, 0, 0.15, 1); overflow: hidden; }
+        
+        /* 指針 */
+        .pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #ff4757; z-index: 10; }
+
+        .input-group { margin-top: 20px; text-align: left; }
+        input { width: 80%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; }
+        .hint { color: #888; font-size: 0.8em; margin-bottom: 10px; }
+        
+        button { background-color: #2ed573; color: white; border: none; padding: 10px 25px; border-radius: 25px; cursor: pointer; font-size: 1.1em; transition: 0.3s; }
+        button:hover { background-color: #26af61; transform: scale(1.05); }
     </style>
 </head>
 <body>
-<div id="game-stage"></div>
-<div id="toolbar"></div>
-<script>
-    const { Engine, Render, Runner, Bodies, Composite, MouseConstraint, Mouse, Events, Body } = Matter;
-    const engine = Engine.create();
-    const stage = document.getElementById('game-stage');
+
+<div class="container">
+    <h2>幸運大轉盤</h2>
+    <p class="hint">請輸入選項（第一個選項為預設中獎項）</p>
     
-    const render = Render.create({
-        element: stage, engine: engine,
-        options: { width: window.innerWidth, height: window.innerHeight - 140, wireframes: false, background: 'transparent' }
-    });
+    <div class="wheel-wrapper">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="300" height="300"></canvas>
+    </div>
 
-    // --- 關鍵修正：加上「新增資料夾/」路徑 ---
-    const folder = "新增資料夾/";
+    <div class="input-group" id="inputContainer">
+        <input type="text" class="option-input" value="大獎：iPhone 15">
+        <input type="text" class="option-input" value="銘謝惠顧">
+        <input type="text" class="option-input" value="再來一次">
+        <input type="text" class="option-input" value="小獎：貼圖">
+    </div>
 
-    const floor = Bodies.rectangle(window.innerWidth/2, window.innerHeight - 130, window.innerWidth, 20, { 
-        isStatic: true, render: { fillStyle: '#b3e5fc' } 
-    });
+    <br>
+    <button onclick="spin()">開始轉動！</button>
+</div>
 
-    // 修正基底圖路徑與名稱
-    const baseSlime = Bodies.rectangle(window.innerWidth/2, window.innerHeight - 200, 240, 110, {
-        isStatic: true, 
-        render: { sprite: { texture: folder + 'slime_base.png.png', xScale: 0.45, yScale: 0.45 } }
-    });
+<script>
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    const colors = ['#ff9f43', '#ee5253', '#0abde3', '#10ac84', '#5f27cd', '#ff9f43'];
+    let currentRotation = 0;
 
-    Composite.add(engine.world, [floor, baseSlime]);
+    // 初始化繪製轉盤
+    function drawWheel() {
+        const inputs = document.querySelectorAll('.option-input');
+        const numOptions = inputs.length;
+        const arcSize = (2 * Math.PI) / numOptions;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        inputs.forEach((input, i) => {
+            const angle = i * arcSize;
+            
+            // 畫扇形
+            ctx.beginPath();
+            ctx.fillStyle = colors[i % colors.length];
+            ctx.moveTo(150, 150);
+            ctx.arc(150, 150, 150, angle, angle + arcSize);
+            ctx.fill();
+            ctx.stroke();
+
+            // 寫文字
+            ctx.save();
+            ctx.translate(150, 150);
+            ctx.rotate(angle + arcSize / 2);
+            ctx.textAlign = "right";
+            ctx.fillStyle = "white";
+            ctx.font = "bold 16px Arial";
+            ctx.fillText(input.value.substring(0, 8), 140, 10);
+            ctx.restore();
+        });
+    }
+
+    function spin() {
+        const inputs = document.querySelectorAll('.option-input');
+        const numOptions = inputs.length;
+        const targetText = inputs[0].value; // 永遠鎖定第一個
+
+        // 計算每一格的角度 (角度制)
+        const arcDegree = 360 / numOptions;
+        
+        // 核心邏輯：
+        // 1. 為了讓「第一個選項」停在正上方指針(270度位置)
+        // 2. 初始狀態第一個選項是從 0 度開始畫
+        // 3. 旋轉圈數 + 修正角度
+        const spins = 5 + Math.floor(Math.random() * 3); // 轉 5-8 圈
+        const randomOffset = Math.random() * (arcDegree * 0.8) - (arcDegree * 0.4); // 增加隨機偏移量，看起來更自然
+        
+        // 計算旋轉總度數：要把第一個選項(0度)轉到指針(270度)
+        // 公式：圈數 - 第一個選項中心點 + 指針位置偏移
+        const finalRotation = (spins * 360) - (arcDegree / 2) + 270 + randomOffset;
+        
+        currentRotation = finalRotation;
+        const wheel = document.getElementById('wheel');
+        wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+        // 鎖定按鈕避免重複點擊
+        const btn = document.querySelector('button');
+        btn.disabled = true;
+
+        setTimeout(() => {
+            alert("✨ 恭喜獲得： " + targetText + " ✨");
+            btn.disabled = false;
+            // 重置旋轉（可選，或保持原樣）
+        }, 5100);
+    }
+
+    // 監聽輸入變化即時更新轉盤
+    document.getElementById('inputContainer').addEventListener('input', drawWheel);
+    drawWheel();
+</script>
+
+</body>
+</html>
