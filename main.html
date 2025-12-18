@@ -1,337 +1,78 @@
-<!doctype html>
-<html lang="zh-Hant">
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Guitar Chord Explorer — Pure JS</title>
-  <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 18px; background:#f7fafc; color:#0f172a; }
-    .container { max-width:960px; margin:0 auto; background:white; padding:18px; border-radius:8px; box-shadow:0 6px 18px rgba(2,6,23,0.06); }
-    h1 { margin:0 0 8px 0; font-size:20px; }
-    label{ font-size:13px; display:block; margin-bottom:6px; }
-    select,input[type="text"], input[type="range"]{ width:100%; padding:8px; border:1px solid #e6edf3; border-radius:6px; box-sizing:border-box; }
-    .grid { display:grid; gap:12px; grid-template-columns: repeat(3, 1fr); margin-bottom:12px; }
-    .row { display:flex; gap:12px; }
-    .card { padding:12px; border:1px solid #eef2f7; border-radius:8px; background:#fff; }
-    .muted { color:#64748b; font-size:13px; }
-    ul { margin:6px 0 0 18px; padding:0; }
-    .fret-grid { display:flex; gap:8px; align-items:flex-start; }
-    .string-box { width:64px; border:1px solid #e6edf3; border-radius:6px; padding:8px; text-align:center; background:#fbfdff; }
-    .string-name { font-size:12px; color:#0f172a; }
-    .fret-num { margin-top:8px; font-family: monospace; font-size:16px; }
-    .small { font-size:13px; color:#475569; }
-    .flex { display:flex; gap:8px; }
-    .col { display:flex; flex-direction:column; gap:8px; }
-    .controls { margin-bottom:12px; }
-    .notice { font-size:13px; color:#334155; margin-top:10px; }
-    .best { background:#f1f5f9; padding:8px; border-radius:6px; border:1px solid #e2e8f0; }
-    .footer { margin-top:14px; font-size:13px; color:#475569; }
-    .kbd { font-family: monospace; background:#eef2ff; padding:2px 6px; border-radius:4px; font-size:12px; }
-    @media (max-width:800px){ .grid{ grid-template-columns: 1fr; } .fret-grid{ overflow:auto;} .string-box{ min-width:56px; } }
-  </style>
+    <meta charset="UTF-8">
+    <title>史萊姆疊疊樂 - GitHub 版</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <style>
+        body { margin: 0; background: #eef9ff; overflow: hidden; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
+        #game-stage { flex: 1; position: relative; cursor: pointer; }
+        #toolbar { 
+            height: 140px; background: #fff; border-top: 5px solid #81d4fa;
+            display: flex; align-items: center; justify-content: start; 
+            gap: 12px; padding: 0 20px; overflow-x: auto;
+        }
+        .slime-unit { width: 70px; height: 70px; object-fit: contain; cursor: grab; transition: 0.2s; border-radius: 10px; background: #fdfdfd; padding: 5px; }
+        .slime-unit:hover { transform: scale(1.1); background: #e1f5fe; }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Guitar Chord Explorer 🎸（純 HTML + JS 可直接預覽）</h1>
-    <p class="muted">輸入和弦的組成音（例：<span class="kbd">C E G</span> 或 <span class="kbd">G,B,D,F#</span>）。下方會顯示辨識結果與吉他指法建議。</p>
-
-    <div class="grid controls">
-      <div class="card">
-        <label>Key（歌曲調性）</label>
-        <select id="keySelect"></select>
-      </div>
-
-      <div class="card">
-        <label>Transpose（半音） <span id="transposeVal">0</span></label>
-        <input id="transpose" type="range" min="-6" max="6" value="0" />
-      </div>
-
-      <div class="card">
-        <label>顯示音名偏好</label>
-        <label style="display:flex;align-items:center;gap:8px;"><input id="useFlats" type="checkbox" /> 使用降記號（Bb、Eb）</label>
-      </div>
-    </div>
-
-    <div class="row" style="margin-bottom:12px;">
-      <div style="flex:1;">
-        <label>和弦組成音（可用空白、逗號或斜線分隔；可包含括號）</label>
-        <input id="chordInput" type="text" value="C E G" />
-      </div>
-      <div style="width:140px;">
-        <label>&nbsp;</label>
-        <button id="analyzeBtn" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1; background:#f8fafc;">解析</button>
-      </div>
-    </div>
-
-    <div class="row" style="gap:18px;">
-      <div class="card" style="flex:1;">
-        <h3 style="margin:0 0 8px 0;">辨識結果</h3>
-        <div id="pcsDisplay" class="small muted">解析出的音名（pitch classes）：—</div>
-        <div id="possibleList" style="margin-top:8px;">
-          <div class="small muted">可能和弦：</div>
-          <ul id="matches"></ul>
-        </div>
-        <div id="bestMatch" style="margin-top:8px;"></div>
-      </div>
-
-      <div class="card" style="width:360px;">
-        <h3 style="margin:0 0 8px 0;">吉他指法示意</h3>
-        <div class="small" id="fretInfo">建議把位：—</div>
-        <div style="height:10px;"></div>
-        <div class="fret-grid" id="fretGrid"></div>
-      </div>
-    </div>
-
-    <div class="footer">
-      <strong>說明：</strong> 本工具以「和弦組成音」為輸入，嘗試比對大量常見與進階和弦模式（包含大/小/增/減/7/maj7/m7/m7b5/半減/aug/7b5/add/sus/5 等）。若要我加入「直接解析和弦文字（例如 Em7 / Cmaj7/G）」，我可以再幫你擴充。
-    </div>
-  </div>
-
+<div id="game-stage"></div>
+<div id="toolbar"></div>
 <script>
-const NOTE_NAMES_SHARP = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-const NOTE_NAMES_FLAT  = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
-const MAJOR_KEYS = ["C","G","D","A","E","B","F#","C#","F","Bb","Eb","Ab","Db","Gb"];
-
-const GUITAR_STRINGS = [4,9,2,7,11,4];
-
-const CHORD_PATTERNS = [
-  {name:"maj", intervals:[0,4,7], aliases:[""]},
-  {name:"min", intervals:[0,3,7], aliases:["m","-"]},
-  {name:"dim", intervals:[0,3,6], aliases:["dim","o"]},
-  {name:"aug", intervals:[0,4,8], aliases:["+","aug"]},
-  {name:"sus2", intervals:[0,2,7], aliases:["sus2"]},
-  {name:"sus4", intervals:[0,5,7], aliases:["sus4","sus"]},
-  {name:"6", intervals:[0,4,7,9], aliases:["6"]},
-  {name:"m6", intervals:[0,3,7,9], aliases:["m6"]},
-  {name:"7", intervals:[0,4,7,10], aliases:["7","dom7"]},
-  {name:"maj7", intervals:[0,4,7,11], aliases:["maj7","M7"]},
-  {name:"m7", intervals:[0,3,7,10], aliases:["m7"]},
-  {name:"mMaj7", intervals:[0,3,7,11], aliases:["mMaj7"]},
-  {name:"dim7", intervals:[0,3,6,9], aliases:["dim7"]},
-  {name:"m7b5", intervals:[0,3,6,10], aliases:["m7b5","ø"]},
-  {name:"add9", intervals:[0,4,7,14], aliases:["add9"]},
-  {name:"9", intervals:[0,4,7,10,14], aliases:["9"]},
-  {name:"11", intervals:[0,4,7,10,14,17], aliases:["11"]},
-  {name:"13", intervals:[0,4,7,10,14,17,21], aliases:["13"]},
-  {name:"sus2add6", intervals:[0,2,7,9], aliases:["sus2add6"]},
-  {name:"sus4add9", intervals:[0,5,7,14], aliases:["sus4add9"]},
-  {name:"5", intervals:[0,7], aliases:["5","power"]},
-  {name:"add11", intervals:[0,4,7,17], aliases:["add11"]},
-  {name:"add2", intervals:[0,4,7,2], aliases:["add2"]},
-  {name:"maj9", intervals:[0,4,7,11,14], aliases:["maj9"]},
-  {name:"aug7", intervals:[0,4,8,10], aliases:["aug7"]},
-  {name:"7b5", intervals:[0,4,6,10], aliases:["7b5"]},
-];
-
-function noteToPc(note) {
-  if(!note) return null;
-  let s = note.trim();
-  s = s.replace(/�/g,'').replace(/♯/g,'#').replace(/♭/g,'b');
-  if(s.length === 0) return null;
-  const base = s[0].toUpperCase();
-  const accidental = s.slice(1);
-  const trySharp = NOTE_NAMES_SHARP.indexOf(base + accidental);
-  if(trySharp !== -1) return trySharp;
-  const tryFlat = NOTE_NAMES_FLAT.indexOf(base + accidental);
-  if(tryFlat !== -1) return tryFlat;
-  if(accidental === '#' ) {
-    const idx = NOTE_NAMES_SHARP.indexOf(base);
-    return (idx + 1) % 12;
-  }
-  if(accidental === 'b') {
-    const idx = NOTE_NAMES_SHARP.indexOf(base);
-    return (idx + 11) % 12;
-  }
-  const idx = NOTE_NAMES_SHARP.indexOf(base);
-  if(idx !== -1) return idx;
-  return null;
-}
-
-function pcsToNames(pcs, preferFlats=false) {
-  const map = preferFlats ? NOTE_NAMES_FLAT : NOTE_NAMES_SHARP;
-  return pcs.map(p => map[((p%12)+12)%12]);
-}
-
-function uniqueSorted(arr){ return Array.from(new Set(arr.map(x=>((x%12)+12)%12))).sort((a,b)=>a-b); }
-
-function intervalsFromRoot(root, pcs) {
-  const uniq = uniqueSorted(pcs);
-  const ints = uniq.map(p => ((p - root) % 12 + 12) % 12).sort((a,b)=>a-b);
-  return ints;
-}
-
-function matchPattern(intervals) {
-  const matches = [];
-  const intSet = new Set(intervals.map(i=>i%12));
-  for(const pat of CHORD_PATTERNS) {
-    const patSet = new Set(pat.intervals.map(i=>i%12));
-    let ok = true;
-    for(const v of patSet) if(!intSet.has(v)) { ok = false; break; }
-    if(ok) matches.push(pat);
-  }
-  return matches;
-}
-
-function identifyChordsFromPcs(pcs) {
-  const uniquePcs = uniqueSorted(pcs);
-  const results = [];
-  for(const root of uniquePcs) {
-    const ints = intervalsFromRoot(root, uniquePcs);
-    const patterns = matchPattern(ints);
-    for(const pat of patterns) {
-      const rootName = NOTE_NAMES_SHARP[root];
-      const alias = (pat.aliases && pat.aliases[0]) ? pat.aliases[0] : pat.name;
-      const display = `${rootName}${alias}`;
-      const score = pat.intervals.length*10 - ints.length;
-      results.push({root, pat, display, score, intervals:ints});
-    }
-  }
-  results.sort((a,b)=>b.score-a.score);
-  return results;
-}
-
-function findFretboard(pcs, maxFret=12, baseFretLimit=5, span=4) {
-  const target = pcs.map(p=>((p%12)+12)%12);
-  const candidates = [];
-  for(let base=0;base<=baseFretLimit;base++){
-    const fingering = [];
-    for(let s=0;s<6;s++){
-      const openPc = GUITAR_STRINGS[s];
-      let chosen = null;
-      for(let f=0; f<=Math.min(maxFret, base+span); f++){
-        const pc = (openPc + f) % 12;
-        if(target.includes(pc)){ chosen = f; break; }
-      }
-      fingering.push(chosen);
-    }
-    const matched = fingering.filter(f => f !== null).length;
-    const numeric = fingering.map(f=> f===null?0:f);
-    const maxF = Math.max(...numeric);
-    const minF = Math.min(...numeric);
-    const range = maxF - minF;
-    const score = matched*10 - range;
-    candidates.push({base, fingering, score});
-  }
-  candidates.sort((a,b)=>b.score-a.score);
-  return candidates[0];
-}
-
-const keySelect = document.getElementById('keySelect');
-const transposeEl = document.getElementById('transpose');
-const transposeVal = document.getElementById('transposeVal');
-const useFlatsEl = document.getElementById('useFlats');
-const chordInput = document.getElementById('chordInput');
-const analyzeBtn = document.getElementById('analyzeBtn');
-
-const pcsDisplay = document.getElementById('pcsDisplay');
-const matchesEl = document.getElementById('matches');
-const bestMatchEl = document.getElementById('bestMatch');
-const fretInfo = document.getElementById('fretInfo');
-const fretGrid = document.getElementById('fretGrid');
-
-function populateKeys(){
-  MAJOR_KEYS.forEach(k => {
-    const opt = document.createElement('option'); opt.value = k; opt.textContent = k;
-    keySelect.appendChild(opt);
-  });
-}
-populateKeys();
-
-/* ---------------- 修改：弦的顯示順序改成 6→1 ---------------- */
-const displayedLabels = ["E", "A", "D", "G", "B", "E'"];  // 左→右 = 6→1
-
-function parseInputToPcs(text, transpose=0) {
-  if(!text) return [];
-  const cleaned = text.replace(/[()]/g,' ').replace(/[\/,]+/g,' ').trim();
-  if(cleaned.length===0) return [];
-  const tokens = cleaned.split(/\s+/);
-  const pcs = tokens.map(t => noteToPc(t)).filter(x => x !== null).map(n => ((n + transpose) % 12 + 12) % 12);
-  return pcs;
-}
-
-/* ---------------- 修改：renderFretGrid() mapping 調整 ---------------- */
-function renderFretGrid(fb) {
-  fretGrid.innerHTML = "";
-  for(let s=0;s<6;s++){
-    const box = document.createElement('div');
-    box.className = 'string-box';
-    const label = document.createElement('div');
-    label.className = 'string-name';
-    label.textContent = displayedLabels[s];
-
-    const fret = document.createElement('div');
-    fret.className = 'fret-num';
-
-    // 新 mapping：displayed index s = fingering[s]
-    let val = '—';
-    if(fb && fb.fingering){
-      const fing = fb.fingering[s];
-      val = (fing === null) ? 'X' : String(fing);
-    } else {
-      val = 'X';
-    }
-
-    fret.textContent = val;
-    box.appendChild(label);
-    box.appendChild(fret);
-    fretGrid.appendChild(box);
-  }
-}
-
-function updateUI(){
-  const transpose = Number(transposeEl.value) || 0;
-  transposeVal.textContent = (transpose >= 0 ? `+${transpose}` : `${transpose}`);
-  const pcs = parseInputToPcs(chordInput.value, transpose);
-  const preferFlats = useFlatsEl.checked;
-
-  if(pcs.length === 0){
-    pcsDisplay.textContent = "解析出的音名（pitch classes）：—";
-    matchesEl.innerHTML = "<li>尚未輸入或解析出有效音。</li>";
-    bestMatchEl.innerHTML = "";
-    fretInfo.textContent = "建議把位：—";
-    renderFretGrid(null);
-    return;
-  }
-
-  const uniquePcs = uniqueSorted(pcs);
-  pcsDisplay.textContent = "解析出的音名（pitch classes）：" + pcsToNames(uniquePcs, preferFlats).join(', ');
-
-  const idents = identifyChordsFromPcs(uniquePcs);
-  matchesEl.innerHTML = "";
-  if(idents.length === 0){
-    matchesEl.innerHTML = "<li>找不到匹配的常見和弦模式</li>";
-  } else {
-    idents.slice(0,10).forEach(r => {
-      const li = document.createElement('li');
-      li.textContent = `${NOTE_NAMES_SHARP[r.root]} ${r.pat.name} — intervals: [${r.intervals.join(', ')}]`;
-      matchesEl.appendChild(li);
+    const { Engine, Render, Runner, Bodies, Composite, MouseConstraint, Mouse, Events, Body } = Matter;
+    const engine = Engine.create();
+    const stage = document.getElementById('game-stage');
+    
+    const render = Render.create({
+        element: stage, engine: engine,
+        options: { width: window.innerWidth, height: window.innerHeight - 140, wireframes: false, background: 'transparent' }
     });
-  }
 
-  if(idents.length > 0){
-    const best = idents[0];
-    bestMatchEl.innerHTML = `<div class="best"><strong>最佳匹配：</strong> ${best.display} （根音 ${NOTE_NAMES_SHARP[best.root]}）</div>`;
-  } else {
-    bestMatchEl.innerHTML = "";
-  }
+    const floor = Bodies.rectangle(window.innerWidth/2, window.innerHeight - 130, window.innerWidth, 20, { 
+        isStatic: true, render: { fillStyle: '#b3e5fc' } 
+    });
 
-  const fb = findFretboard(uniquePcs);
-  if(!fb) {
-    fretInfo.textContent = "建議把位：無";
-    renderFretGrid(null);
-  } else {
-    fretInfo.textContent = `建議把位（base ${fb.base}，匹配弦 ${fb.fingering.filter(x=>x!==null).length}/6）`;
-    renderFretGrid(fb);
-  }
-}
+    // 這裡使用你上傳的基底圖檔名
+    const baseSlime = Bodies.rectangle(window.innerWidth/2, window.innerHeight - 200, 240, 110, {
+        isStatic: true, 
+        render: { sprite: { texture: 'image_94fe7c.png', xScale: 0.45, yScale: 0.45 } }
+    });
 
-analyzeBtn.addEventListener('click', updateUI);
-transposeEl.addEventListener('input', updateUI);
-useFlatsEl.addEventListener('change', updateUI);
-chordInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); updateUI(); } });
+    Composite.add(engine.world, [floor, baseSlime]);
+    Render.run(render);
+    Runner.run(Runner.create(), engine);
 
-updateUI();
+    const toolbar = document.getElementById('toolbar');
+    for (let i = 1; i <= 12; i++) {
+        const img = document.createElement('img');
+        img.src = `slime_${i}.png`; 
+        img.className = 'slime-unit';
+        img.onclick = () => {
+            const s = Bodies.rectangle(window.innerWidth/2, 50, 80, 60, {
+                restitution: 0.6, friction: 0.8, chamfer: { radius: 20 },
+                render: { sprite: { texture: `slime_${i}.png`, xScale: 0.4, yScale: 0.4 } }
+            });
+            Composite.add(engine.world, s);
+        };
+        toolbar.appendChild(img);
+    }
 
+    const mouse = Mouse.create(render.canvas);
+    const mConstraint = MouseConstraint.create(engine, { mouse: mouse, constraint: { stiffness: 0.2, render: { visible: false } } });
+    Composite.add(engine.world, mConstraint);
+
+    Events.on(mConstraint, "mousedown", function() {
+        if (mConstraint.body && !mConstraint.body.isStatic) {
+            Body.scale(mConstraint.body, 1.2, 0.8);
+            setTimeout(() => Body.scale(mConstraint.body, 1/1.2, 1/0.8), 100);
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        render.canvas.width = window.innerWidth;
+        render.canvas.height = window.innerHeight - 140;
+    });
 </script>
 </body>
 </html>
