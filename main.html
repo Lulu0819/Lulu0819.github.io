@@ -2,160 +2,143 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>幸運抽獎系統</title>
+    <title>專業線上轉盤 - 隱藏模式</title>
     <style>
-        body { font-family: 'PingFang TC', sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding: 40px 20px; }
-        .card { background: #fff; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); padding: 30px; width: 400px; text-align: center; }
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f0f2f5; padding: 20px; }
+        .container { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
         
-        /* 轉盤外觀 */
-        .wheel-box { position: relative; margin: 20px auto; width: 300px; height: 300px; }
-        .pointer { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #ff4757; z-index: 10; }
-        #wheel { width: 100%; height: 100%; border-radius: 50%; border: 6px solid #333; transition: transform 3.5s cubic-bezier(0.1, 0, 0, 1); }
-
-        /* 選項清單 */
-        .input-list { margin-top: 25px; max-height: 180px; overflow-y: auto; text-align: left; }
-        .row { display: flex; gap: 8px; margin-bottom: 10px; }
-        .row input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; }
-        .btn-del { background: #f1f1f1; border: none; width: 35px; border-radius: 8px; cursor: pointer; color: #999; }
-
-        /* 隱形地雷按鈕 */
-        .btn-container {
-            position: relative;
-            margin-top: 25px;
-            width: 100%;
-            height: 55px;
-            background: #3498db;
-            border-radius: 12px;
-            overflow: hidden;
-            cursor: pointer;
-            user-select: none;
-        }
-        .btn-text {
-            line-height: 55px;
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
-            pointer-events: none;
-        }
-        /* 隱形分區：只有你自己知道的秘密 */
-        .fair-trigger {
-            position: absolute; top: 0; left: 0;
-            width: 85%; height: 100%; /* 左邊 85% 是公平區 */
-            z-index: 2;
-        }
-        .cheat-trigger {
-            position: absolute; top: 0; right: 0;
-            width: 15%; height: 100%; /* 右邊 15% 是必中區 */
-            z-index: 2;
-        }
+        /* 轉盤外殼 */
+        .wheel-container { position: relative; width: 300px; height: 300px; margin: 20px 0; border: 5px solid #333; border-radius: 50%; overflow: hidden; }
+        #wheel { width: 100%; height: 100%; transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1); }
         
-        .btn-container:active { filter: brightness(0.9); transform: scale(0.98); }
-        .disabled { background: #bdc3c7 !important; pointer-events: none; }
+        /* 指針 */
+        .pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid red; z-index: 10; }
+
+        textarea { width: 100%; height: 80px; margin-bottom: 10px; padding: 10px; box-sizing: border-box; }
+        
+        /* 關鍵按鈕 */
+        #spinBtn {
+            padding: 12px 40px; font-size: 18px; cursor: pointer;
+            background: #007bff; color: white; border: none; border-radius: 5px;
+            transition: background 0.3s; position: relative;
+        }
+        #spinBtn:hover { background: #0056b3; }
+        #result { margin-top: 15px; font-weight: bold; color: #d9534f; font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2 style="margin-bottom:5px;">幸運大轉盤</h2>
-    <p style="font-size:14px; color:#888;">輸入選項後點擊按鈕即可開始</p>
+<div class="container">
+    <h2>幸運大轉盤</h2>
+    <p>輸入選項（一行一個）：</p>
+    <textarea id="optionsText">第一個人(必中位)
+第二個人
+第三個人
+第四個人</textarea>
     
-    <div class="wheel-box">
+    <div class="wheel-container">
         <div class="pointer"></div>
-        <canvas id="wheel" width="400" height="400"></canvas>
+        <canvas id="wheel" width="300" height="300"></canvas>
     </div>
 
-    <div class="input-list" id="inputContainer">
-        <div class="row"><input type="text" class="opt-input" value="iPhone 15 Pro"><div style="width:35px"></div></div>
-        <div class="row">
-            <input type="text" class="opt-input" value="超商禮券">
-            <button class="btn-del" onclick="this.parentElement.remove(); draw();">×</button>
-        </div>
-        <div class="row">
-            <input type="text" class="opt-input" value="謝謝參與">
-            <button class="btn-del" onclick="this.parentElement.remove(); draw();">×</button>
-        </div>
-    </div>
-
-    <button style="width:100%; margin-top:15px; padding:10px; border:1px dashed #ccc; background:#fff; cursor:pointer; border-radius:8px;" onclick="addRow()">+ 新增更多選項</button>
-
-    <div class="btn-container" id="mainBtn">
-        <div class="btn-text">立即抽獎</div>
-        <div class="fair-trigger" onclick="spin(false)"></div>
-        <div class="cheat-trigger" onclick="spin(true)"></div>
-    </div>
+    <button id="spinBtn">開始抽獎</button>
+    <div id="result"></div>
 </div>
 
 <script>
     const canvas = document.getElementById('wheel');
     const ctx = canvas.getContext('2d');
-    const colors = ['#3498db', '#2ecc71', '#f1c40f', '#e67e22', '#9b59b6', '#1abc9c'];
-    let currentDeg = 0;
+    const spinBtn = document.getElementById('spinBtn');
+    const resultDiv = document.getElementById('result');
+    const optionsInput = document.getElementById('optionsText');
 
-    function draw() {
-        const inputs = document.querySelectorAll('.opt-input');
-        const count = inputs.length;
-        if (count === 0) return;
-        const arc = (2 * Math.PI) / count;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        inputs.forEach((input, i) => {
+    let currentRotation = 0;
+    let isSpinning = false;
+
+    // 繪製轉盤
+    function drawWheel(options) {
+        const num = options.length;
+        const arc = (Math.PI * 2) / num;
+        ctx.clearRect(0, 0, 300, 300);
+
+        options.forEach((text, i) => {
             const angle = i * arc;
             ctx.beginPath();
-            ctx.fillStyle = colors[i % colors.length];
-            ctx.moveTo(200, 200);
-            ctx.arc(200, 200, 200, angle, angle + arc);
+            ctx.fillStyle = `hsl(${i * (360 / num)}, 70%, 70%)`;
+            ctx.moveTo(150, 150);
+            ctx.arc(150, 150, 150, angle, angle + arc);
+            ctx.lineTo(150, 150);
             ctx.fill();
+
+            // 繪製文字
             ctx.save();
-            ctx.translate(200, 200);
+            ctx.translate(150, 150);
             ctx.rotate(angle + arc / 2);
             ctx.textAlign = "right";
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 20px sans-serif";
-            ctx.fillText(input.value.substring(0, 10), 180, 10);
+            ctx.fillStyle = "#333";
+            ctx.font = "14px Arial";
+            ctx.fillText(text, 140, 5);
             ctx.restore();
         });
     }
 
-    function addRow() {
-        const div = document.createElement('div');
-        div.className = 'row';
-        div.innerHTML = `<input type="text" class="opt-input" placeholder="新選項" oninput="draw()"><button class="btn-del" onclick="this.parentElement.remove(); draw();">×</button>`;
-        document.getElementById('inputContainer').appendChild(div);
-        draw();
-    }
+    // 初始化繪製
+    drawWheel(optionsInput.value.split('\n').filter(t => t.trim()));
 
-    function spin(isCheated) {
-        const inputs = document.querySelectorAll('.opt-input');
-        const btn = document.getElementById('mainBtn');
-        const arcDeg = 360 / inputs.length;
+    // 監聽輸入即時更新轉盤
+    optionsInput.addEventListener('input', () => {
+        const options = optionsInput.value.split('\n').filter(t => t.trim());
+        if (options.length > 0) drawWheel(options);
+    });
 
-        btn.classList.add('disabled');
+    spinBtn.addEventListener('click', function(e) {
+        if (isSpinning) return;
 
-        // 決定結果：Cheat 為 true 則選 0 (第一個)，否則隨機
-        const targetIndex = isCheated ? 0 : Math.floor(Math.random() * inputs.length);
+        const options = optionsInput.value.split('\n').filter(t => t.trim());
+        if (options.length < 2) return alert("請至少輸入兩個選項");
+
+        // --- 核心邏輯：判斷點擊位置 ---
+        const rect = spinBtn.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const width = rect.width;
         
-        // 旋轉圈數 25-30
-        const spins = (25 + Math.floor(Math.random() * 5)) * 360;
-        const targetCenterAngle = (targetIndex * arcDeg + arcDeg / 2);
-        const randomOffset = (Math.random() * (arcDeg * 0.6)) + (arcDeg * 0.2);
+        let targetIndex;
+
+        if (clickX < width * 0.1) {
+            // 點擊左側 10%：必中第一個 (Index 0)
+            console.log("Mode: Master Control Activated");
+            targetIndex = 0;
+        } else {
+            // 點擊其他 90%：隨機
+            console.log("Mode: Fair Random");
+            targetIndex = Math.floor(Math.random() * options.length);
+        }
+
+        startSpin(targetIndex, options);
+    });
+
+    function startSpin(targetIndex, options) {
+        isSpinning = true;
+        resultDiv.innerText = "旋轉中...";
         
-        let rotationToTarget = (360 - targetCenterAngle) + 270 - randomOffset;
-        rotationToTarget = (rotationToTarget + 360) % 360; 
-
-        const currentRest = currentDeg % 360;
-        let compensation = rotationToTarget - currentRest;
-        if (compensation < 0) compensation += 360;
-
-        currentDeg += (spins + compensation);
-        document.getElementById('wheel').style.transform = `rotate(${currentDeg}deg)`;
+        const num = options.length;
+        const arcDegree = 360 / num;
+        
+        // 計算旋轉角度：
+        // 1. 先轉個 5-10 圈 (360 * 5)
+        // 2. 指針在正上方 (270度方向)，所以要調整偏移
+        // 3. 扣掉目標索引的角度
+        const extraDegree = (360 - (targetIndex * arcDegree)) - (arcDegree / 2);
+        const totalRotation = currentRotation + (360 * 5) + extraDegree;
+        
+        canvas.style.transform = `rotate(${totalRotation}deg)`;
+        currentRotation = totalRotation;
 
         setTimeout(() => {
-            alert(`🎉 抽獎結果：${inputs[targetIndex].value}`);
-            btn.classList.remove('disabled');
-        }, 3600);
+            isSpinning = false;
+            resultDiv.innerText = `恭喜中獎：${options[targetIndex]}`;
+        }, 4000);
     }
-
-    document.getElementById('inputContainer').addEventListener('input', draw);
-    draw();
 </script>
 
 </body>
