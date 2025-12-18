@@ -2,70 +2,62 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>幸運轉盤抽獎</title>
+    <title>幸運抽獎系統</title>
     <style>
-        :root { --main-color: #3498db; }
-        body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
-        .card { background: white; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); padding: 30px; width: 400px; text-align: center; }
+        body { font-family: 'PingFang TC', sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding: 40px 20px; }
+        .card { background: #fff; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); padding: 30px; width: 400px; text-align: center; }
         
         /* 轉盤外觀 */
-        .wheel-box { position: relative; margin: 20px auto; width: 280px; height: 280px; }
-        .pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #ff4757; z-index: 10; }
-        #wheel { width: 100%; height: 100%; border-radius: 50%; border: 5px solid #333; transition: transform 3.5s cubic-bezier(0.1, 0, 0, 1); }
+        .wheel-box { position: relative; margin: 20px auto; width: 300px; height: 300px; }
+        .pointer { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #ff4757; z-index: 10; }
+        #wheel { width: 100%; height: 100%; border-radius: 50%; border: 6px solid #333; transition: transform 3.5s cubic-bezier(0.1, 0, 0, 1); }
 
-        /* 輸入框列表 */
-        .input-list { margin-top: 20px; max-height: 200px; overflow-y: auto; text-align: left; }
-        .row { display: flex; gap: 5px; margin-bottom: 8px; }
-        .row input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
-        .btn-del { background: #eee; border: none; width: 30px; cursor: pointer; border-radius: 5px; }
+        /* 選項清單 */
+        .input-list { margin-top: 25px; max-height: 180px; overflow-y: auto; text-align: left; }
+        .row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .row input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; }
+        .btn-del { background: #f1f1f1; border: none; width: 35px; border-radius: 8px; cursor: pointer; color: #999; }
 
-        /* 終極偽裝按鈕 */
-        .spin-container {
+        /* 隱形地雷按鈕 */
+        .btn-container {
             position: relative;
-            margin-top: 20px;
+            margin-top: 25px;
             width: 100%;
-            height: 50px;
-            background: var(--main-color);
-            border-radius: 8px;
-            cursor: pointer;
+            height: 55px;
+            background: #3498db;
+            border-radius: 12px;
             overflow: hidden;
+            cursor: pointer;
             user-select: none;
         }
-        .spin-label {
-            line-height: 50px;
+        .btn-text {
+            line-height: 55px;
             color: white;
             font-weight: bold;
             font-size: 18px;
-            pointer-events: none; /* 讓文字不干擾點擊 */
+            pointer-events: none;
         }
-        /* 隱形的作弊區域 (只佔右側一小部分) */
-        .cheat-zone {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 20%; /* 只有右邊 20% 是必中區 */
-            height: 100%;
-            background: rgba(255, 0, 0, 0); /* 完全透明 */
+        /* 隱形分區：只有你自己知道的秘密 */
+        .fair-trigger {
+            position: absolute; top: 0; left: 0;
+            width: 85%; height: 100%; /* 左邊 85% 是公平區 */
             z-index: 2;
         }
-        .fair-zone {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 80%;
-            height: 100%;
-            background: rgba(0, 0, 255, 0); /* 完全透明 */
+        .cheat-trigger {
+            position: absolute; top: 0; right: 0;
+            width: 15%; height: 100%; /* 右邊 15% 是必中區 */
             z-index: 2;
         }
         
-        .spin-container:active { filter: brightness(0.9); transform: scale(0.98); }
-        .disabled { background: #ccc !important; cursor: not-allowed; pointer-events: none; }
+        .btn-container:active { filter: brightness(0.9); transform: scale(0.98); }
+        .disabled { background: #bdc3c7 !important; pointer-events: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2 style="margin:0;">幸運大抽獎</h2>
+    <h2 style="margin-bottom:5px;">幸運大轉盤</h2>
+    <p style="font-size:14px; color:#888;">輸入選項後點擊按鈕即可開始</p>
     
     <div class="wheel-box">
         <div class="pointer"></div>
@@ -73,9 +65,9 @@
     </div>
 
     <div class="input-list" id="inputContainer">
-        <div class="row"><input type="text" class="opt-input" value="特等獎"><div style="width:30px"></div></div>
+        <div class="row"><input type="text" class="opt-input" value="iPhone 15 Pro"><div style="width:35px"></div></div>
         <div class="row">
-            <input type="text" class="opt-input" value="二等獎">
+            <input type="text" class="opt-input" value="超商禮券">
             <button class="btn-del" onclick="this.parentElement.remove(); draw();">×</button>
         </div>
         <div class="row">
@@ -84,19 +76,19 @@
         </div>
     </div>
 
-    <button style="width:100%; margin-top:10px; cursor:pointer;" onclick="addRow()">+ 新增選項</button>
+    <button style="width:100%; margin-top:15px; padding:10px; border:1px dashed #ccc; background:#fff; cursor:pointer; border-radius:8px;" onclick="addRow()">+ 新增更多選項</button>
 
-    <div class="spin-container" id="mainBtn">
-        <div class="spin-label">立即抽獎</div>
-        <div class="fair-zone" onclick="startSpin(false)"></div>
-        <div class="cheat-zone" onclick="startSpin(true)"></div>
+    <div class="btn-container" id="mainBtn">
+        <div class="btn-text">立即抽獎</div>
+        <div class="fair-trigger" onclick="spin(false)"></div>
+        <div class="cheat-trigger" onclick="spin(true)"></div>
     </div>
 </div>
 
 <script>
     const canvas = document.getElementById('wheel');
     const ctx = canvas.getContext('2d');
-    const colors = ['#3498db', '#1abc9c', '#f1c40f', '#e67e22', '#9b59b6', '#34495e'];
+    const colors = ['#3498db', '#2ecc71', '#f1c40f', '#e67e22', '#9b59b6', '#1abc9c'];
     let currentDeg = 0;
 
     function draw() {
@@ -117,7 +109,7 @@
             ctx.rotate(angle + arc / 2);
             ctx.textAlign = "right";
             ctx.fillStyle = "#fff";
-            ctx.font = "bold 22px sans-serif";
+            ctx.font = "bold 20px sans-serif";
             ctx.fillText(input.value.substring(0, 10), 180, 10);
             ctx.restore();
         });
@@ -131,20 +123,20 @@
         draw();
     }
 
-    function startSpin(isCheated) {
+    function spin(isCheated) {
         const inputs = document.querySelectorAll('.opt-input');
         const btn = document.getElementById('mainBtn');
-        const wheel = document.getElementById('wheel');
         const arcDeg = 360 / inputs.length;
 
         btn.classList.add('disabled');
 
-        // 決定結果：Cheat 就選 0，不然就隨機
+        // 決定結果：Cheat 為 true 則選 0 (第一個)，否則隨機
         const targetIndex = isCheated ? 0 : Math.floor(Math.random() * inputs.length);
-        const spins = (20 + Math.floor(Math.random() * 5)) * 360;
         
+        // 旋轉圈數 25-30
+        const spins = (25 + Math.floor(Math.random() * 5)) * 360;
         const targetCenterAngle = (targetIndex * arcDeg + arcDeg / 2);
-        const randomOffset = (Math.random() * (arcDeg * 0.5)) + (arcDeg * 0.25);
+        const randomOffset = (Math.random() * (arcDeg * 0.6)) + (arcDeg * 0.2);
         
         let rotationToTarget = (360 - targetCenterAngle) + 270 - randomOffset;
         rotationToTarget = (rotationToTarget + 360) % 360; 
@@ -154,10 +146,10 @@
         if (compensation < 0) compensation += 360;
 
         currentDeg += (spins + compensation);
-        wheel.style.transform = `rotate(${currentDeg}deg)`;
+        document.getElementById('wheel').style.transform = `rotate(${currentDeg}deg)`;
 
         setTimeout(() => {
-            alert(`恭喜獲得：${inputs[targetIndex].value}`);
+            alert(`🎉 抽獎結果：${inputs[targetIndex].value}`);
             btn.classList.remove('disabled');
         }, 3600);
     }
