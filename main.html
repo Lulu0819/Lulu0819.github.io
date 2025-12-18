@@ -3,30 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>極速必中轉盤</title>
+    <title>必中極速轉盤 - 專業版</title>
     <style>
-        :root { --primary-color: #6c5ce7; --bg-color: #f8f9fa; }
-        body { font-family: 'PingFang TC', sans-serif; background-color: var(--bg-color); display: flex; justify-content: center; padding: 40px 20px; }
-        .card { background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 30px; width: 100%; max-width: 600px; text-align: center; }
+        :root { --primary: #6c5ce7; --accent: #ff7675; --bg: #f1f2f6; }
+        body { font-family: 'PingFang TC', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); padding: 25px; width: 100%; max-width: 500px; text-align: center; }
         
-        /* 轉盤外框與動畫速度調整 */
-        .wheel-container { position: relative; margin: 30px auto; width: 320px; }
-        .pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 18px solid transparent; border-right: 18px solid transparent; border-top: 35px solid #d63031; z-index: 10; }
-        
+        /* 轉盤視覺與極速動畫 */
+        .wheel-box { position: relative; margin: 20px auto; width: 300px; height: 300px; }
+        .pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #d63031; z-index: 10; }
         #wheel { 
-            width: 320px; height: 320px; border-radius: 50%; border: 8px solid #2d3436; 
-            /* 這裡縮短為 3.5秒，並自定義更強大的動力曲線 */
-            transition: transform 3.5s cubic-bezier(0.2, 0, 0, 1); 
+            width: 100%; height: 100%; border-radius: 50%; border: 6px solid #2d3436; 
+            transition: transform 3.5s cubic-bezier(0.1, 0, 0, 1); /* 極速啟動曲線 */
             background: #fff; 
         }
 
-        .input-section { width: 100%; margin-top: 20px; text-align: left; }
-        .option-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
-        .option-row input { flex: 1; padding: 10px; border: 2px solid #dfe6e9; border-radius: 8px; }
-        .option-row input.target { background-color: #fff9db; border-color: #fcc419; }
+        /* 輸入區域 */
+        .input-list { margin-top: 20px; max-height: 300px; overflow-y: auto; padding-right: 5px; }
+        .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .row input { flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .row input:focus { border-color: var(--primary); outline: none; }
+        .row .target-label { background: #ffeaa7; color: #d35400; font-weight: bold; padding: 10px; border-radius: 8px; font-size: 12px; }
         
-        .btn-del { background: #ff7675; color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
-        .controls { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-del { background: #fab1a0; color: #e17055; border: none; width: 35px; height: 35px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-del:hover { background: var(--accent); color: white; }
+
+        .controls { display: flex; gap: 10px; margin-top: 20px; }
+        button.main-btn { flex: 1; padding: 12px; border: none; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; }
+        .btn-add { background: #55efc4; color: #00b894; }
+        .btn-spin { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(108, 92, 231, 0.3); }
+        button:active { transform: scale(0.95); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2 style="margin:0 0 10px 0;">🎡 極速必中轉盤</h2>
+    <p style="font-size:13px; color:#636e72;">提示：轉盤結果永遠是列表中的「第一項」</p>
+
+    <div class="wheel-box">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="400" height="400"></canvas>
+    </div>
+
+    <div class="input-list" id="inputContainer">
+        <div class="row">
+            <span class="target-label">必中</span>
+            <input type="text" class="opt-input" value="頭獎 iPhone 15" oninput="draw()">
+        </div>
+        <div class="row">
+            <input type="text" class="opt-input" value="銘謝惠顧" oninput="draw()">
+            <button class="btn-del" onclick="removeRow(this)">✕</button>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="main-btn btn-add" onclick="addRow()">➕ 新增選項</button>
+        <button class="main-btn btn-spin" id="spinBtn" onclick="spin()">🔥 極速開轉</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    const colors = ['#6c5ce7', '#00cec9', '#fab1a0', '#fd79a8', '#ffeaa7', '#a29bfe', '#55efc4'];
+    let currentTotalDeg = 0;
+
+    // 繪製轉盤
+    function draw() {
+        const inputs = document.querySelectorAll('.opt-input');
+        const count = inputs.length;
+        const arc = (2 * Math.PI) / count;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        inputs.forEach((input, i) => {
+            const angle = i * arc;
+            // 扇形
+            ctx.beginPath();
+            ctx.fillStyle = colors[i % colors.length];
+            ctx.moveTo(200, 200);
+            ctx.arc(200, 200, 200, angle, angle + arc);
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255,255,255,0.5)";
+            ctx.stroke();
+
+            // 文字
+            ctx.save();
+            ctx.translate(200, 200);
+            ctx.rotate(angle + arc / 2);
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 20px sans-serif";
+            // 只取前10個字避免爆出去
+            ctx.fillText(input.value.substring(0, 10) || `選項 ${i+1}`, 180, 10);
+            ctx.restore();
+        });
+    }
+
+    // 新增選項 (無限增加)
+    function addRow() {
+        const container = document.getElementById('inputContainer');
+        const div = document.createElement('div');
+        div.className = 'row';
+        div.innerHTML = `
+            <input type="text" class="opt-input" placeholder="新選項..." oninput="draw()">
+            <button class="btn-del" onclick="removeRow(this)">✕</button>
+        `;
+        container.appendChild(div);
+        draw();
+    }
+
+    // 刪除選項 (防錯：第一個不會有刪除鈕)
+    function removeRow(btn) {
+        btn.parentElement.remove();
+        draw();
+    }
+
+    // 極速必中邏輯
+    function spin() {
+        const inputs = document.querySelectorAll('.opt-input');
+        if (inputs.length < 1) return;
+
+        const btn = document.getElementById('spinBtn');
+        const wheel = document.getElementById('wheel');
+        const count = inputs.length;
+        const arcDeg = 360 / count;
+
+        btn.disabled = true;
+
+        // 1. 增加旋轉圈數 (25-30圈，極快)
+        const spins = (25 + Math.floor(Math.random() * 5)) * 360;
         
-        button.main-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        .btn-add { background
+        // 2. 計算落點：第一格(0度)要對準指針(270度)
+        // 隨機偏移量讓指針停在第一格的不同位置
+        const randomOffset = (Math.random() * (arcDeg * 0.6)) + (arcDeg * 0.2);
+        
+        // 3. 計算本次旋轉角度（考慮到累計角度，避免倒轉）
+        const currentRest = currentTotalDeg % 360;
+        let targetPos = 270 - randomOffset;
+        let compensation = targetPos - currentRest;
+        if (compensation <= 0) compensation += 360;
+
+        currentTotalDeg += (spins + compensation);
+        
+        wheel.style.transform = `rotate(${currentTotalDeg}deg)`;
+
+        // 4. 結果回饋
+        setTimeout(() => {
+            alert(`✨ 恭喜獲得：${inputs[0].value} ✨`);
+            btn.disabled = false;
+        }, 3600); // 動畫 3.5s + 0.1s 緩衝
+    }
+
+    // 初始化
+    draw();
+</script>
+
+</body>
+</html>
