@@ -2,123 +2,31 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>萬用幸運轉盤 (內建必中邏輯)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>極速必中轉盤</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f2f5; padding: 20px; }
-        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; max-width: 500px; width: 100%; }
+        :root { --primary-color: #6c5ce7; --bg-color: #f8f9fa; }
+        body { font-family: 'PingFang TC', sans-serif; background-color: var(--bg-color); display: flex; justify-content: center; padding: 40px 20px; }
+        .card { background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 30px; width: 100%; max-width: 600px; text-align: center; }
         
-        /* 轉盤外框 */
-        .wheel-wrapper { position: relative; width: 300px; height: 300px; margin: 20px auto; }
-        #wheel { width: 100%; height: 100%; border-radius: 50%; border: 5px solid #333; transition: transform 5s cubic-bezier(0.15, 0, 0.15, 1); overflow: hidden; }
+        /* 轉盤外框與動畫速度調整 */
+        .wheel-container { position: relative; margin: 30px auto; width: 320px; }
+        .pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 18px solid transparent; border-right: 18px solid transparent; border-top: 35px solid #d63031; z-index: 10; }
         
-        /* 指針 */
-        .pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #ff4757; z-index: 10; }
+        #wheel { 
+            width: 320px; height: 320px; border-radius: 50%; border: 8px solid #2d3436; 
+            /* 這裡縮短為 3.5秒，並自定義更強大的動力曲線 */
+            transition: transform 3.5s cubic-bezier(0.2, 0, 0, 1); 
+            background: #fff; 
+        }
 
-        .input-group { margin-top: 20px; text-align: left; }
-        input { width: 80%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; }
-        .hint { color: #888; font-size: 0.8em; margin-bottom: 10px; }
+        .input-section { width: 100%; margin-top: 20px; text-align: left; }
+        .option-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .option-row input { flex: 1; padding: 10px; border: 2px solid #dfe6e9; border-radius: 8px; }
+        .option-row input.target { background-color: #fff9db; border-color: #fcc419; }
         
-        button { background-color: #2ed573; color: white; border: none; padding: 10px 25px; border-radius: 25px; cursor: pointer; font-size: 1.1em; transition: 0.3s; }
-        button:hover { background-color: #26af61; transform: scale(1.05); }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h2>幸運大轉盤</h2>
-    <p class="hint">請輸入選項（第一個選項為預設中獎項）</p>
-    
-    <div class="wheel-wrapper">
-        <div class="pointer"></div>
-        <canvas id="wheel" width="300" height="300"></canvas>
-    </div>
-
-    <div class="input-group" id="inputContainer">
-        <input type="text" class="option-input" value="大獎：iPhone 15">
-        <input type="text" class="option-input" value="銘謝惠顧">
-        <input type="text" class="option-input" value="再來一次">
-        <input type="text" class="option-input" value="小獎：貼圖">
-    </div>
-
-    <br>
-    <button onclick="spin()">開始轉動！</button>
-</div>
-
-<script>
-    const canvas = document.getElementById('wheel');
-    const ctx = canvas.getContext('2d');
-    const colors = ['#ff9f43', '#ee5253', '#0abde3', '#10ac84', '#5f27cd', '#ff9f43'];
-    let currentRotation = 0;
-
-    // 初始化繪製轉盤
-    function drawWheel() {
-        const inputs = document.querySelectorAll('.option-input');
-        const numOptions = inputs.length;
-        const arcSize = (2 * Math.PI) / numOptions;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        inputs.forEach((input, i) => {
-            const angle = i * arcSize;
-            
-            // 畫扇形
-            ctx.beginPath();
-            ctx.fillStyle = colors[i % colors.length];
-            ctx.moveTo(150, 150);
-            ctx.arc(150, 150, 150, angle, angle + arcSize);
-            ctx.fill();
-            ctx.stroke();
-
-            // 寫文字
-            ctx.save();
-            ctx.translate(150, 150);
-            ctx.rotate(angle + arcSize / 2);
-            ctx.textAlign = "right";
-            ctx.fillStyle = "white";
-            ctx.font = "bold 16px Arial";
-            ctx.fillText(input.value.substring(0, 8), 140, 10);
-            ctx.restore();
-        });
-    }
-
-    function spin() {
-        const inputs = document.querySelectorAll('.option-input');
-        const numOptions = inputs.length;
-        const targetText = inputs[0].value; // 永遠鎖定第一個
-
-        // 計算每一格的角度 (角度制)
-        const arcDegree = 360 / numOptions;
+        .btn-del { background: #ff7675; color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
+        .controls { display: flex; gap: 10px; margin-top: 15px; }
         
-        // 核心邏輯：
-        // 1. 為了讓「第一個選項」停在正上方指針(270度位置)
-        // 2. 初始狀態第一個選項是從 0 度開始畫
-        // 3. 旋轉圈數 + 修正角度
-        const spins = 5 + Math.floor(Math.random() * 3); // 轉 5-8 圈
-        const randomOffset = Math.random() * (arcDegree * 0.8) - (arcDegree * 0.4); // 增加隨機偏移量，看起來更自然
-        
-        // 計算旋轉總度數：要把第一個選項(0度)轉到指針(270度)
-        // 公式：圈數 - 第一個選項中心點 + 指針位置偏移
-        const finalRotation = (spins * 360) - (arcDegree / 2) + 270 + randomOffset;
-        
-        currentRotation = finalRotation;
-        const wheel = document.getElementById('wheel');
-        wheel.style.transform = `rotate(${currentRotation}deg)`;
-
-        // 鎖定按鈕避免重複點擊
-        const btn = document.querySelector('button');
-        btn.disabled = true;
-
-        setTimeout(() => {
-            alert("✨ 恭喜獲得： " + targetText + " ✨");
-            btn.disabled = false;
-            // 重置旋轉（可選，或保持原樣）
-        }, 5100);
-    }
-
-    // 監聽輸入變化即時更新轉盤
-    document.getElementById('inputContainer').addEventListener('input', drawWheel);
-    drawWheel();
-</script>
-
-</body>
-</html>
+        button.main-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        .btn-add { background
