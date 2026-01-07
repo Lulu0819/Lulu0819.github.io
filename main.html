@@ -2,61 +2,32 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<title>福利社搖球機 🎰</title>
+<title>福利社抽籤吃什麼 🎋</title>
 
 <style>
 body{
   font-family:"Microsoft JhengHei",sans-serif;
-  background:#fef3c7;
+  background:linear-gradient(#fef3c7,#fde68a);
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
 }
 .card{
-  background:white;
-  width:380px;
-  padding:24px;
-  border-radius:18px;
-  box-shadow:0 12px 24px rgba(0,0,0,.15);
-  text-align:center;
-}
-.machine{
-  margin:16px auto;
-  width:220px;
-  height:260px;
-  border-radius:16px;
-  border:5px solid #999;
   background:#fff;
-  position:relative;
-  overflow:hidden;
+  width:360px;
+  padding:24px;
+  border-radius:16px;
+  box-shadow:0 10px 20px rgba(0,0,0,.15);
 }
-
-/* 球從上面掉下來 */
-.ball{
-  width:22px;
-  height:22px;
-  border-radius:50%;
-  position:absolute;
-  left:50%;
-  transform:translateX(-50%);
-  top:-30px;
-  animation:fall 1s ease-out forwards;
-}
-
-@keyframes fall{
-  to{ top:220px; }
-}
-
-.yellow{ background:#facc15; }
-.white{ background:#e5e7eb; }
-.green{ background:#22c55e; }
-.red{ background:#ef4444; }
-
+h1{text-align:center;}
 .options{
   font-size:14px;
-  text-align:left;
-  margin:10px 0;
+  margin:12px 0;
+}
+.options label{
+  display:block;
+  margin-bottom:6px;
 }
 button{
   width:100%;
@@ -64,48 +35,49 @@ button{
   font-size:16px;
   border:none;
   border-radius:10px;
-  background:#f59e0b;
+  background:#b45309;
   color:white;
   cursor:pointer;
 }
-
+button:hover{background:#92400e;}
 .result{
-  margin-top:14px;
+  margin-top:16px;
   background:#fff7ed;
   padding:12px;
   border-radius:10px;
-  font-size:14px;
   line-height:1.6;
+  font-size:14px;
 }
 </style>
 </head>
 
 <body>
 <div class="card">
-  <h1>🎰 福利社搖球機</h1>
+  <h1>🎋 福利社抽籤</h1>
+  <p style="text-align:center">今天的籤運是……</p>
 
   <div class="options">
-    <label><input type="checkbox" id="drink"> 加抽飲料</label><br>
+    <label><input type="checkbox" id="drink"> 加抽飲料</label>
     <label><input type="checkbox" id="limit"> 總金額不超過 60 元</label>
   </div>
 
-  <button onclick="start()">開始搖</button>
+  <button onclick="draw()">開始抽籤</button>
 
-  <div class="machine" id="machine"></div>
-
-  <div class="result" id="result">準備搖球中 🎯</div>
+  <div class="result" id="result">點擊按鈕抽籤 🎯</div>
 </div>
 
 <script>
-const mains = [
+const mustFoods = [
   {name:"點心麵",price:50},
   {name:"水餃",price:40},
   {name:"滷味",price:35}
 ];
+
 const luckyFoods = [
   {name:"茶葉蛋",price:11},
   {name:"關東煮",price:"random"}
 ];
+
 const drinks = [
   {name:"麥香",price:10},
   {name:"大吸管",price:30},
@@ -113,80 +85,52 @@ const drinks = [
   {name:"阿華田",price:25}
 ];
 
-function dropBall(color, delay){
-  setTimeout(()=>{
-    const b = document.createElement("div");
-    b.className = `ball ${color}`;
-    document.getElementById("machine").appendChild(b);
-  }, delay);
-}
-
-function start(){
-  const machine = document.getElementById("machine");
+function draw(){
+  const addDrink = document.getElementById("drink").checked;
+  const limit = document.getElementById("limit").checked;
   const result = document.getElementById("result");
-  machine.innerHTML = "";
-  result.innerHTML = "🎰 球球開始滾動……";
-
-  setTimeout(runLogic, 300);   // 很快進入邏輯
-}
-
-function runLogic(){
-  const addDrink = drink.checked;
-  const limit = limit.checked;
 
   while(true){
     let total = 0;
     let text = "";
-    let delay = 0;
 
-    // 主餐（黃球）
-    const main = mains[Math.floor(Math.random()*mains.length)];
-    dropBall("yellow", delay);
-    delay += 700;
+    // 抽籤運
+    const luckRoll = Math.random();
+    let luckText = "😐 小吉";
+    if(luckRoll > 0.7) luckText = "🎊 大吉";
+    else if(luckRoll > 0.4) luckText = "🙂 中吉";
+
+    text += `你抽到的是 <b>${luckText}</b> 籤。<br><br>`;
+
+    // 必出主餐
+    const main = mustFoods[Math.floor(Math.random()*mustFoods.length)];
+    text += `🍚 主餐抽到：${main.name}（${main.price} 元）<br>`;
     total += main.price;
-    text += `🟡 主餐：${main.name}（${main.price} 元）<br>`;
 
-    const luck = Math.random();
-
-    // 幸運加抽（白球）
-    if(luck > 0.4){
-      dropBall("white", delay);
-      delay += 700;
+    // 幸運加抽
+    if(luckText !== "😐 小吉"){
       const lucky = luckyFoods[Math.floor(Math.random()*luckyFoods.length)];
-      if(lucky.name==="關東煮"){
+      if(lucky.name === "關東煮"){
         const sticks = Math.random()<0.5?1:2;
-        const p = sticks===1?15:30;
-        total += p;
-        text += `⚪ 加抽：關東煮 ${sticks} 串（${p} 元）<br>`;
+        const price = sticks===1?15:30;
+        text += `🍢 幸運加抽：關東煮 ${sticks} 串（${price} 元）<br>`;
+        total += price;
       }else{
+        text += `🥚 幸運加抽：茶葉蛋（11 元）<br>`;
         total += 11;
-        text += `⚪ 加抽：茶葉蛋（11 元）<br>`;
       }
     }
 
-    // 飲料（綠球）
+    // 飲料
     if(addDrink){
-      dropBall("green", delay);
-      delay += 700;
       const d = drinks[Math.floor(Math.random()*drinks.length)];
+      text += `🥤 飲料：${d.name}（${d.price} 元）<br>`;
       total += d.price;
-      text += `🟢 飲料：${d.name}（${d.price} 元）<br>`;
     }
 
-    // 超幸運布丁（紅球）
-    if(luck > 0.8){
-      dropBall("red", delay);
-      delay += 700;
-      const big = Math.random()<0.5;
-      const p = big?18:12;
-      total += p;
-      text += `🔴 超幸運布丁（${big?"大":"小"}，${p} 元）<br>`;
-    }
-
-    if(!limit || total<=60){
-      setTimeout(()=>{
-        result.innerHTML = text + `<br>💰 總金額：<b>${total} 元</b>`;
-      }, delay + 300); // 🔥 最晚約 4.5～5 秒
+    if(!limit || total <= 60){
+      text += `<br>💰 總金額：<b>${total} 元</b>`;
+      result.innerHTML = text;
       break;
     }
   }
