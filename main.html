@@ -50,8 +50,10 @@ button:hover{background:#92400e;}
   line-height:1.6;
   font-size:14px;
   min-height:80px;
+  position:relative;
+  overflow:hidden;
 }
-/* 籤筒動畫 */
+/* 籤筒 */
 .tube{
   width:60px;
   height:80px;
@@ -59,7 +61,6 @@ button:hover{background:#92400e;}
   margin:12px auto;
   border-radius:12px;
   position:relative;
-  animation:none;
 }
 .tube::before{
   content:"";
@@ -72,16 +73,28 @@ button:hover{background:#92400e;}
   top:0;
   left:0;
 }
-.tube.shake{
-  animation: shake 0.8s;
+/* 籤掉落動畫 */
+.talisman{
+  width:80px;
+  height:40px;
+  background:#fffbcc;
+  border:2px solid #f59e0b;
+  border-radius:8px;
+  position:absolute;
+  top:0;
+  left:50%;
+  transform: translateX(-50%);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-weight:bold;
+  color:#b45309;
+  animation: drop 0.8s forwards;
 }
-@keyframes shake{
-  0%{transform: rotate(0deg);}
-  20%{transform: rotate(15deg);}
-  40%{transform: rotate(-15deg);}
-  60%{transform: rotate(10deg);}
-  80%{transform: rotate(-10deg);}
-  100%{transform: rotate(0deg);}
+@keyframes drop{
+  0%{top:0; opacity:0; transform: translateX(-50%) scale(0.5);}
+  50%{opacity:1; transform: translateX(-50%) scale(1.1);}
+  100%{top:60px; opacity:1; transform: translateX(-50%) scale(1);}
 }
 </style>
 </head>
@@ -132,26 +145,28 @@ function draw(){
   const result = document.getElementById("result");
   const tube = document.getElementById("tube");
 
-  // 播放搖籤動畫
-  tube.classList.add("shake");
-  result.innerHTML = "搖籤中…🍀";
+  // 清空之前籤
+  result.innerHTML = "";
+  
+  // 決定籤運
+  const luckRoll = Math.random();
+  let luckText = "😐 小吉";
+  if(luckRoll > 0.7) luckText = "🎊 大吉";
+  else if(luckRoll > 0.4) luckText = "🙂 中吉";
 
+  // 建立籤元素掉落動畫
+  const talisman = document.createElement("div");
+  talisman.className = "talisman";
+  talisman.innerHTML = luckText;
+  result.appendChild(talisman);
+
+  // 等動畫結束再生成食物結果
   setTimeout(()=>{
-    tube.classList.remove("shake");
-
     while(true){
       let total = 0;
       let text = "";
 
-      // 籤運
-      const luckRoll = Math.random();
-      let luckText = "😐 小吉";
-      if(luckRoll > 0.7) luckText = "🎊 大吉";
-      else if(luckRoll > 0.4) luckText = "🙂 中吉";
-
-      text += `你抽到的是 <b>${luckText}</b> 籤。<br><br>`;
-
-      // 主餐（四擇一）
+      // 主餐
       const main = mustFoods[Math.floor(Math.random()*mustFoods.length)];
       text += `🍚 主餐抽到：${main.name}（${main.price} 元）<br>`;
       total += main.price;
@@ -185,13 +200,11 @@ function draw(){
       }
 
       if(!limit || total <= 60){
-        text += `<br>💰 總金額：<b>${total} 元</b>`;
-        result.innerHTML = text;
+        result.innerHTML += `<br>${text}<br>💰 總金額：<b>${total} 元</b>`;
         break;
       }
     }
-
-  }, 800); // 搖籤動畫 0.8 秒
+  }, 900); // 動畫時間
 }
 </script>
 </body>
