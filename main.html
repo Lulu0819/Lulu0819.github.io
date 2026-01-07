@@ -23,27 +23,31 @@ body{
 }
 .machine{
   margin:16px auto;
-  width:200px;
-  height:200px;
-  border-radius:50%;
-  border:6px solid #aaa;
+  width:220px;
+  height:260px;
+  border-radius:16px;
+  border:5px solid #999;
+  background:#fff;
   position:relative;
   overflow:hidden;
-  background:#fff;
 }
+
+/* 球從上面掉下來 */
 .ball{
-  width:24px;
-  height:24px;
+  width:22px;
+  height:22px;
   border-radius:50%;
   position:absolute;
-  top:-30px;
   left:50%;
   transform:translateX(-50%);
-  animation:fall .8s ease forwards;
+  top:-30px;
+  animation:fall 1s ease-out forwards;
 }
+
 @keyframes fall{
-  to{ top:160px; }
+  to{ top:220px; }
 }
+
 .yellow{ background:#facc15; }
 .white{ background:#e5e7eb; }
 .green{ background:#22c55e; }
@@ -64,6 +68,7 @@ button{
   color:white;
   cursor:pointer;
 }
+
 .result{
   margin-top:14px;
   background:#fff7ed;
@@ -88,7 +93,7 @@ button{
 
   <div class="machine" id="machine"></div>
 
-  <div class="result" id="result">搖一下看看今天吃什麼</div>
+  <div class="result" id="result">準備搖球中 🎯</div>
 </div>
 
 <script>
@@ -108,21 +113,21 @@ const drinks = [
   {name:"阿華田",price:25}
 ];
 
-function start(){
-  const machine = document.getElementById("machine");
-  const result = document.getElementById("result");
-  machine.innerHTML = "";
-  result.innerHTML = "🎰 球球滾動中……";
-
-  setTimeout(runLogic, 1200);
-}
-
 function dropBall(color, delay){
   setTimeout(()=>{
     const b = document.createElement("div");
     b.className = `ball ${color}`;
     document.getElementById("machine").appendChild(b);
   }, delay);
+}
+
+function start(){
+  const machine = document.getElementById("machine");
+  const result = document.getElementById("result");
+  machine.innerHTML = "";
+  result.innerHTML = "🎰 球球開始滾動……";
+
+  setTimeout(runLogic, 300);   // 很快進入邏輯
 }
 
 function runLogic(){
@@ -132,19 +137,21 @@ function runLogic(){
   while(true){
     let total = 0;
     let text = "";
+    let delay = 0;
 
-    // 主餐（黃球，一定有）
+    // 主餐（黃球）
     const main = mains[Math.floor(Math.random()*mains.length)];
-    dropBall("yellow",0);
+    dropBall("yellow", delay);
+    delay += 700;
     total += main.price;
     text += `🟡 主餐：${main.name}（${main.price} 元）<br>`;
 
-    // 籤運
     const luck = Math.random();
 
-    // 白球（中吉以上）
+    // 幸運加抽（白球）
     if(luck > 0.4){
-      dropBall("white",300);
+      dropBall("white", delay);
+      delay += 700;
       const lucky = luckyFoods[Math.floor(Math.random()*luckyFoods.length)];
       if(lucky.name==="關東煮"){
         const sticks = Math.random()<0.5?1:2;
@@ -157,17 +164,19 @@ function runLogic(){
       }
     }
 
-    // 飲料
+    // 飲料（綠球）
     if(addDrink){
-      dropBall("green",600);
+      dropBall("green", delay);
+      delay += 700;
       const d = drinks[Math.floor(Math.random()*drinks.length)];
       total += d.price;
       text += `🟢 飲料：${d.name}（${d.price} 元）<br>`;
     }
 
-    // 超幸運布丁
+    // 超幸運布丁（紅球）
     if(luck > 0.8){
-      dropBall("red",900);
+      dropBall("red", delay);
+      delay += 700;
       const big = Math.random()<0.5;
       const p = big?18:12;
       total += p;
@@ -175,7 +184,9 @@ function runLogic(){
     }
 
     if(!limit || total<=60){
-      result.innerHTML = text + `<br>💰 總金額：<b>${total} 元</b>`;
+      setTimeout(()=>{
+        result.innerHTML = text + `<br>💰 總金額：<b>${total} 元</b>`;
+      }, delay + 300); // 🔥 最晚約 4.5～5 秒
       break;
     }
   }
