@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>福利社抽籤吃什麼 🎋</title>
-
 <style>
 body{
   font-family:"Microsoft JhengHei",sans-serif;
@@ -20,11 +19,13 @@ body{
   border-radius:16px;
   box-shadow:0 10px 20px rgba(0,0,0,.15);
   text-align:center;
+  position:relative;
 }
 h1{text-align:center;}
 .options{
   font-size:14px;
   margin:12px 0;
+  text-align:left;
 }
 .options label{
   display:block;
@@ -48,59 +49,74 @@ button:hover{background:#92400e;}
   border-radius:10px;
   line-height:1.6;
   font-size:14px;
-  min-height:120px;
+  min-height:80px;
 }
-#lottery {
-  margin: 16px auto;
-  width: 80px;
-  height: 120px;
-  background:#e11d48;
-  border-radius:20px;
+/* 籤筒動畫 */
+.tube{
+  width:60px;
+  height:80px;
+  background:red;
+  margin:12px auto;
+  border-radius:12px;
   position:relative;
-  cursor:pointer;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  color:white;
-  font-weight:bold;
-  font-size:18px;
-  user-select:none;
-  animation: shake 0s;
+  animation:none;
 }
-@keyframes shake {
-  0% { transform: rotate(0deg); }
-  25% { transform: rotate(15deg); }
-  50% { transform: rotate(-15deg); }
-  75% { transform: rotate(10deg); }
-  100% { transform: rotate(0deg); }
+.tube::before{
+  content:"";
+  width:100%;
+  height:10px;
+  background:#800000;
+  display:block;
+  border-radius:6px 6px 0 0;
+  position:absolute;
+  top:0;
+  left:0;
+}
+.tube.shake{
+  animation: shake 0.8s;
+}
+@keyframes shake{
+  0%{transform: rotate(0deg);}
+  20%{transform: rotate(15deg);}
+  40%{transform: rotate(-15deg);}
+  60%{transform: rotate(10deg);}
+  80%{transform: rotate(-10deg);}
+  100%{transform: rotate(0deg);}
 }
 </style>
 </head>
-
 <body>
 <div class="card">
   <h1>🎋 福利社抽籤</h1>
   <p>今天的籤運是……</p>
+  <div class="tube" id="tube"></div>
 
   <div class="options">
     <label><input type="checkbox" id="drink"> 加抽飲料</label>
     <label><input type="checkbox" id="limit"> 總金額不超過 60 元</label>
   </div>
 
-  <div id="lottery">🎋</div>
-  <div class="result" id="result">點擊紅色籤筒抽籤 🎯</div>
+  <button onclick="draw()">開始抽籤</button>
+
+  <div class="result" id="result">點擊按鈕抽籤 🎯</div>
 </div>
 
 <script>
 const mustFoods = [
   {name:"點心麵",price:50},
   {name:"水餃",price:40},
-  {name:"滷味",price:35}
+  {name:"滷味",price:35},
+  {name:"便當",price:80}
 ];
 
 const luckyFoods = [
   {name:"茶葉蛋",price:11},
   {name:"關東煮",price:"random"}
+];
+
+const puddings = [
+  {name:"小布丁",price:12},
+  {name:"大布丁",price:18}
 ];
 
 const drinks = [
@@ -110,29 +126,24 @@ const drinks = [
   {name:"阿華田",price:25}
 ];
 
-const puddings = [
-  {name:"布丁（大）",price:18},
-  {name:"布丁（小）",price:12}
-];
-
-const lotteryDiv = document.getElementById("lottery");
-lotteryDiv.addEventListener("click", draw);
-
 function draw(){
   const addDrink = document.getElementById("drink").checked;
   const limit = document.getElementById("limit").checked;
   const result = document.getElementById("result");
+  const tube = document.getElementById("tube");
 
-  // 抽籤動畫
-  lotteryDiv.style.animation = "shake 0.6s";
-  setTimeout(()=>{ lotteryDiv.style.animation = ""; }, 600);
+  // 播放搖籤動畫
+  tube.classList.add("shake");
+  result.innerHTML = "搖籤中…🍀";
 
-  setTimeout(()=>{ // 等動畫完再出結果
+  setTimeout(()=>{
+    tube.classList.remove("shake");
+
     while(true){
       let total = 0;
       let text = "";
 
-      // 抽籤運
+      // 籤運
       const luckRoll = Math.random();
       let luckText = "😐 小吉";
       if(luckRoll > 0.7) luckText = "🎊 大吉";
@@ -140,7 +151,7 @@ function draw(){
 
       text += `你抽到的是 <b>${luckText}</b> 籤。<br><br>`;
 
-      // 必出主餐
+      // 主餐（四擇一）
       const main = mustFoods[Math.floor(Math.random()*mustFoods.length)];
       text += `🍚 主餐抽到：${main.name}（${main.price} 元）<br>`;
       total += main.price;
@@ -157,14 +168,13 @@ function draw(){
           text += `🥚 幸運加抽：茶葉蛋（11 元）<br>`;
           total += 11;
         }
+      }
 
-        // 運氣超好抽布丁 (大吉 50% 機率, 中吉 20% 機率)
-        let puddingChance = luckText==="🎊 大吉"?0.5:0.2;
-        if(Math.random()<puddingChance){
-          const p = puddings[Math.floor(Math.random()*puddings.length)];
-          text += `🍮 運氣好加抽：${p.name}（${p.price} 元）<br>`;
-          total += p.price;
-        }
+      // 大吉加布丁
+      if(luckText === "🎊 大吉"){
+        const pud = puddings[Math.floor(Math.random()*puddings.length)];
+        text += `🍮 幸運加抽：${pud.name}（${pud.price} 元）<br>`;
+        total += pud.price;
       }
 
       // 飲料
@@ -180,7 +190,8 @@ function draw(){
         break;
       }
     }
-  }, 650); // 動畫結束再顯示結果
+
+  }, 800); // 搖籤動畫 0.8 秒
 }
 </script>
 </body>
