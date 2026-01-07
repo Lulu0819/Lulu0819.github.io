@@ -2,114 +2,105 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<title>福利社抽籤吃什麼 🎋</title>
+<title>福利社搖球機 🎰</title>
 
 <style>
 body{
   font-family:"Microsoft JhengHei",sans-serif;
-  background:linear-gradient(#fef3c7,#fde68a);
+  background:#fef3c7;
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
 }
 .card{
-  background:#fff;
-  width:360px;
+  background:white;
+  width:380px;
   padding:24px;
-  border-radius:16px;
-  box-shadow:0 10px 20px rgba(0,0,0,.15);
+  border-radius:18px;
+  box-shadow:0 12px 24px rgba(0,0,0,.15);
+  text-align:center;
 }
-h1{text-align:center;}
+.machine{
+  margin:16px auto;
+  width:200px;
+  height:200px;
+  border-radius:50%;
+  border:6px solid #aaa;
+  position:relative;
+  overflow:hidden;
+  background:#fff;
+}
+.ball{
+  width:24px;
+  height:24px;
+  border-radius:50%;
+  position:absolute;
+  top:-30px;
+  left:50%;
+  transform:translateX(-50%);
+  animation:fall .8s ease forwards;
+}
+@keyframes fall{
+  to{ top:160px; }
+}
+.yellow{ background:#facc15; }
+.white{ background:#e5e7eb; }
+.green{ background:#22c55e; }
+.red{ background:#ef4444; }
 
 .options{
   font-size:14px;
-  margin:12px 0;
+  text-align:left;
+  margin:10px 0;
 }
-.options label{
-  display:block;
-  margin-bottom:6px;
-}
-
 button{
   width:100%;
   padding:10px;
   font-size:16px;
   border:none;
   border-radius:10px;
-  background:#b45309;
+  background:#f59e0b;
   color:white;
   cursor:pointer;
 }
-button:hover{background:#92400e;}
-
-.tube{
-  margin:16px auto;
-  width:120px;
-  height:160px;
-  border:4px solid #92400e;
-  border-radius:12px;
-  position:relative;
-  overflow:hidden;
-  background:#fff7ed;
-}
-
-.stick{
-  width:80px;
-  height:16px;
-  background:#fde68a;
-  border-radius:6px;
-  position:absolute;
-  left:50%;
-  transform:translateX(-50%);
-  animation:drop 0.8s ease-in forwards;
-}
-
-@keyframes drop{
-  from{ top:-20px; opacity:0; }
-  to{ top:120px; opacity:1; }
-}
-
 .result{
-  margin-top:16px;
+  margin-top:14px;
   background:#fff7ed;
   padding:12px;
   border-radius:10px;
-  line-height:1.6;
   font-size:14px;
+  line-height:1.6;
 }
 </style>
 </head>
 
 <body>
 <div class="card">
-  <h1>🎋 福利社抽籤</h1>
-  <p style="text-align:center">今天的籤運是……</p>
+  <h1>🎰 福利社搖球機</h1>
 
   <div class="options">
-    <label><input type="checkbox" id="drink"> 加抽飲料</label>
+    <label><input type="checkbox" id="drink"> 加抽飲料</label><br>
     <label><input type="checkbox" id="limit"> 總金額不超過 60 元</label>
   </div>
 
-  <button onclick="startDraw()">開始抽籤</button>
+  <button onclick="start()">開始搖</button>
 
-  <div class="tube" id="tube"></div>
+  <div class="machine" id="machine"></div>
 
-  <div class="result" id="result">等待抽籤 🎯</div>
+  <div class="result" id="result">搖一下看看今天吃什麼</div>
 </div>
 
 <script>
-const mustFoods = [
+const mains = [
   {name:"點心麵",price:50},
   {name:"水餃",price:40},
   {name:"滷味",price:35}
 ];
-
 const luckyFoods = [
   {name:"茶葉蛋",price:11},
   {name:"關東煮",price:"random"}
 ];
-
 const drinks = [
   {name:"麥香",price:10},
   {name:"大吸管",price:30},
@@ -117,68 +108,74 @@ const drinks = [
   {name:"阿華田",price:25}
 ];
 
-function startDraw(){
-  const tube = document.getElementById("tube");
+function start(){
+  const machine = document.getElementById("machine");
   const result = document.getElementById("result");
+  machine.innerHTML = "";
+  result.innerHTML = "🎰 球球滾動中……";
 
-  tube.innerHTML = "";
-  result.innerHTML = "🎋 抽籤中……籤正在掉出來";
-
-  // 產生掉籤動畫
-  for(let i=0;i<3;i++){
-    setTimeout(()=>{
-      const stick = document.createElement("div");
-      stick.className = "stick";
-      tube.appendChild(stick);
-    }, i * 300);
-  }
-
-  // 動畫結束後顯示結果
-  setTimeout(drawResult, 1200);
+  setTimeout(runLogic, 1200);
 }
 
-function drawResult(){
-  const addDrink = document.getElementById("drink").checked;
-  const limit = document.getElementById("limit").checked;
-  const result = document.getElementById("result");
+function dropBall(color, delay){
+  setTimeout(()=>{
+    const b = document.createElement("div");
+    b.className = `ball ${color}`;
+    document.getElementById("machine").appendChild(b);
+  }, delay);
+}
+
+function runLogic(){
+  const addDrink = drink.checked;
+  const limit = limit.checked;
 
   while(true){
     let total = 0;
     let text = "";
 
-    const luckRoll = Math.random();
-    let luckText = "😐 小吉";
-    if(luckRoll > 0.7) luckText = "🎊 大吉";
-    else if(luckRoll > 0.4) luckText = "🙂 中吉";
-
-    text += `你抽到的是 <b>${luckText}</b> 籤。<br><br>`;
-
-    const main = mustFoods[Math.floor(Math.random()*mustFoods.length)];
-    text += `🍚 主餐抽到：${main.name}（${main.price} 元）<br>`;
+    // 主餐（黃球，一定有）
+    const main = mains[Math.floor(Math.random()*mains.length)];
+    dropBall("yellow",0);
     total += main.price;
+    text += `🟡 主餐：${main.name}（${main.price} 元）<br>`;
 
-    if(luckText !== "😐 小吉"){
+    // 籤運
+    const luck = Math.random();
+
+    // 白球（中吉以上）
+    if(luck > 0.4){
+      dropBall("white",300);
       const lucky = luckyFoods[Math.floor(Math.random()*luckyFoods.length)];
-      if(lucky.name === "關東煮"){
+      if(lucky.name==="關東煮"){
         const sticks = Math.random()<0.5?1:2;
-        const price = sticks===1?15:30;
-        text += `🍢 幸運加抽：關東煮 ${sticks} 串（${price} 元）<br>`;
-        total += price;
+        const p = sticks===1?15:30;
+        total += p;
+        text += `⚪ 加抽：關東煮 ${sticks} 串（${p} 元）<br>`;
       }else{
-        text += `🥚 幸運加抽：茶葉蛋（11 元）<br>`;
         total += 11;
+        text += `⚪ 加抽：茶葉蛋（11 元）<br>`;
       }
     }
 
+    // 飲料
     if(addDrink){
+      dropBall("green",600);
       const d = drinks[Math.floor(Math.random()*drinks.length)];
-      text += `🥤 飲料：${d.name}（${d.price} 元）<br>`;
       total += d.price;
+      text += `🟢 飲料：${d.name}（${d.price} 元）<br>`;
     }
 
-    if(!limit || total <= 60){
-      text += `<br>💰 總金額：<b>${total} 元</b>`;
-      result.innerHTML = text;
+    // 超幸運布丁
+    if(luck > 0.8){
+      dropBall("red",900);
+      const big = Math.random()<0.5;
+      const p = big?18:12;
+      total += p;
+      text += `🔴 超幸運布丁（${big?"大":"小"}，${p} 元）<br>`;
+    }
+
+    if(!limit || total<=60){
+      result.innerHTML = text + `<br>💰 總金額：<b>${total} 元</b>`;
       break;
     }
   }
