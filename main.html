@@ -21,6 +21,7 @@ body{
   box-shadow:0 10px 20px rgba(0,0,0,.15);
 }
 h1{text-align:center;}
+
 .options{
   font-size:14px;
   margin:12px 0;
@@ -29,6 +30,7 @@ h1{text-align:center;}
   display:block;
   margin-bottom:6px;
 }
+
 button{
   width:100%;
   padding:10px;
@@ -40,6 +42,34 @@ button{
   cursor:pointer;
 }
 button:hover{background:#92400e;}
+
+.tube{
+  margin:16px auto;
+  width:120px;
+  height:160px;
+  border:4px solid #92400e;
+  border-radius:12px;
+  position:relative;
+  overflow:hidden;
+  background:#fff7ed;
+}
+
+.stick{
+  width:80px;
+  height:16px;
+  background:#fde68a;
+  border-radius:6px;
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  animation:drop 0.8s ease-in forwards;
+}
+
+@keyframes drop{
+  from{ top:-20px; opacity:0; }
+  to{ top:120px; opacity:1; }
+}
+
 .result{
   margin-top:16px;
   background:#fff7ed;
@@ -61,9 +91,11 @@ button:hover{background:#92400e;}
     <label><input type="checkbox" id="limit"> 總金額不超過 60 元</label>
   </div>
 
-  <button onclick="draw()">開始抽籤</button>
+  <button onclick="startDraw()">開始抽籤</button>
 
-  <div class="result" id="result">點擊按鈕抽籤 🎯</div>
+  <div class="tube" id="tube"></div>
+
+  <div class="result" id="result">等待抽籤 🎯</div>
 </div>
 
 <script>
@@ -85,7 +117,27 @@ const drinks = [
   {name:"阿華田",price:25}
 ];
 
-function draw(){
+function startDraw(){
+  const tube = document.getElementById("tube");
+  const result = document.getElementById("result");
+
+  tube.innerHTML = "";
+  result.innerHTML = "🎋 抽籤中……籤正在掉出來";
+
+  // 產生掉籤動畫
+  for(let i=0;i<3;i++){
+    setTimeout(()=>{
+      const stick = document.createElement("div");
+      stick.className = "stick";
+      tube.appendChild(stick);
+    }, i * 300);
+  }
+
+  // 動畫結束後顯示結果
+  setTimeout(drawResult, 1200);
+}
+
+function drawResult(){
   const addDrink = document.getElementById("drink").checked;
   const limit = document.getElementById("limit").checked;
   const result = document.getElementById("result");
@@ -94,7 +146,6 @@ function draw(){
     let total = 0;
     let text = "";
 
-    // 抽籤運
     const luckRoll = Math.random();
     let luckText = "😐 小吉";
     if(luckRoll > 0.7) luckText = "🎊 大吉";
@@ -102,12 +153,10 @@ function draw(){
 
     text += `你抽到的是 <b>${luckText}</b> 籤。<br><br>`;
 
-    // 必出主餐
     const main = mustFoods[Math.floor(Math.random()*mustFoods.length)];
     text += `🍚 主餐抽到：${main.name}（${main.price} 元）<br>`;
     total += main.price;
 
-    // 幸運加抽
     if(luckText !== "😐 小吉"){
       const lucky = luckyFoods[Math.floor(Math.random()*luckyFoods.length)];
       if(lucky.name === "關東煮"){
@@ -121,7 +170,6 @@ function draw(){
       }
     }
 
-    // 飲料
     if(addDrink){
       const d = drinks[Math.floor(Math.random()*drinks.length)];
       text += `🥤 飲料：${d.name}（${d.price} 元）<br>`;
